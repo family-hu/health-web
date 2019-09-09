@@ -1,0 +1,110 @@
+import axios from 'axios'
+import * as types from './constant/ConstantConfig.js'
+import { DES3 } from './assets/DES3.js'
+import { hex_md5 } from './assets/md5.js'
+import store from './store/store.js'
+'use strict';
+const LosslessJSON = require('lossless-json');
+
+
+
+axios.defaults.timeout = 25000;
+// axios.defaults.baseURL = "http://smanager.sinoylb.com/sk";
+// axios.defaults.baseURL = "http://ylb1688.sinoylb.com/sk";
+
+// axios.defaults.headers.common['Content-Type'] =
+// axios.defaults.headers.get/post['Content-Type'] = ''
+
+export var financeConfig = {
+  responseType: 'text',
+  transformResponse: data => {
+    try {
+      data = LosslessJSON.parse(data);
+    } catch (e) {
+    }
+    return data;
+  },
+  abUrl: "/finance/"  //财务线上地址
+  // abUrl: "http://aiyizfb8899.aiyi01.com/sk/"   //本地测试环境测试地址
+  // abUrl: "http://ylb1688.sinoylb.com/sk/"       //本地正式环境测试地址
+};
+
+export var config = {
+  responseType: 'text',
+  transformResponse: data => {
+    try {
+      data = LosslessJSON.parse(data);
+    } catch (e) {
+    }
+    return data;
+  },
+   abUrl: "/apis/"
+  // abUrl: "http://admintest.16health.com:9000/sk/"
+  //abUrl: "http://smanager.sinoylb.com/sk/"
+};
+
+export var consultationConfig = {
+  responseType: 'text',
+  transformResponse: data => {
+    try {
+      data = LosslessJSON.parse(data);
+    } catch (e) {
+    }
+    return data;
+  },
+  abUrl: "/sk/"
+  // abUrl: "http://smanager.sinoylb.com:9901/sk/"  //心理咨询本地正式环境测试地址
+  // abUrl: "http://psyc.sinoylb.com:8088/sk/"      //心理咨询本地测试环境测试地址
+};
+
+function getVer() {
+  let d = new Date();
+  let curr_date = d.getDate();
+  let curr_month = d.getMonth() + 1;
+  let curr_year = d.getFullYear();
+  String(curr_month).length < 2 ? (curr_month = "0" + curr_month): curr_month;
+  String(curr_date).length < 2 ? (curr_date = "0" + curr_date): curr_date;
+  return curr_year + "" + curr_month +""+ curr_date;
+}
+
+axios.interceptors.request.use(function (config) {
+    let index = types.URL_FILTERS.indexOf(config.url);
+    let needLogin = (index == -1);
+    config.url = config.abUrl + config.url;
+    // console.log(config);
+
+    config.headers["ver"] = getVer();
+    config.headers["appType"] = store.state.appType;
+    config.headers["appVer"] = types.APP_VER;
+    let milliseconds = (new Date()).valueOf();
+    config.headers["seqId"] = milliseconds;
+    let json = JSON.stringify(config.data);
+    let message = json + milliseconds;
+    let des = DES3.encrypt(types.KEY, message);
+    let signData = hex_md5(des).toLocaleUpperCase();
+    config.headers["signData"] = signData;
+    let tid = store.state.userinfo.loginData.tid;
+    if(tid && needLogin) {
+      config.headers["tid"] = tid;
+    }
+    return config;
+}, function (error) {
+  return Promise.reject(error);
+});
+
+axios.interceptors.response.use(function (response) {
+  if(response.data.rtnCode.value != types.CODE_OK) {
+      return Promise.reject(response);
+  }
+  return response;
+}, function (error) {
+  let message = "网络错误";
+  if(error.response.status == 900) {
+    message = "用户凭证过期，重新登录";
+    window.location.href = store.state.loginUrl + "autoLogin";
+  }
+  error.data = {rtnMsg: message};
+  return Promise.reject(error);
+});
+
+export default axios;

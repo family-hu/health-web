@@ -1,0 +1,58 @@
+<template>
+  <ul v-infinite-scroll="loadMore" infinite-scroll-disabled="loading" infinite-scroll-distance="50" infinite-scroll-immediate-check="false">
+    <report-item v-for="(item,index) in reportList" :key="index" :reportItem="item"  @click.native="goDetail(item)"></report-item>
+  </ul>
+</template>
+
+<script>
+    import ReportItem from './ReportItem.vue';
+    export default {
+        data() {
+           return {
+             loading: true,
+             loaded: true,
+             reportList: []
+           }
+        },
+        components: {
+            reportItem: ReportItem
+        },
+
+        methods: {
+            loadMore() {
+              if(!this.loaded) {
+                this.requestReportList();
+              }
+            },
+
+            goDetail(item) {
+                this.$router.push({
+                  path: 'patientReport',
+                  query: {
+                     docId: item.docid.value
+                  }
+                })
+            },
+
+            requestReportList() {
+              this.$store.dispatch("imnewpatientlist", {}).then((data) => {
+                if(data.data) {
+                  for(let i = 0; i < data.data.length; i++) {
+                    this.reportList.push(data.data[i]);
+                  }
+                }
+              }).catch(error => {
+                this.$toast(error.message);
+              });
+            }
+        },
+
+        created() {
+            this.requestReportList();
+        }
+    }
+</script>
+
+<style scoped>
+  ul,li{ padding:0;list-style:none; margin: 0;}
+</style>

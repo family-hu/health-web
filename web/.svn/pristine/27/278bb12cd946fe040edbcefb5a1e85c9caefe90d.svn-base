@@ -1,0 +1,83 @@
+<template>
+    <div style="background: white;">
+
+      <div style="padding: 12px 16px;height: 80px; position: relative;">
+
+        <img width="80px" height="80px" :src="docImg" style="float: left">
+
+        <div style="margin-left: 96px; position: absolute;top: 50%; transform: translateY(-50%)">
+          <div class="namecs">{{ reportItem.userName }}</div>
+          <div class="titlecs" >疾病：{{ sickName }}</div>
+          <div class="titlecs" >{{ time }}</div>
+        </div>
+
+        <div style="position: absolute;top: 50%; transform: translateY(-50%); right: 16px;">
+          <span class="titlecs" style="vertical-align: middle;">{{ reportStatus }}</span>
+          <img :src="arrowImg" style="vertical-align: middle;margin-left: 2px;" width="12px" />
+        </div>
+      </div>
+
+      <hr class="full-line" />
+
+    </div>
+</template>
+
+<script>
+    import imgMap from '../../../static/js/imgmap.js';
+    export default {
+        props: ['reportItem'],
+
+        computed: {
+          docImg() {
+            let imgUrl = imgMap.docMale;
+            if (this.reportItem.photoUrl) {
+              imgUrl = this.reportItem.photoUrl;
+            } else {
+              if(this.reportItem.gender) {
+                let gender = this.reportItem.gender.value;
+                if(gender == "0") {
+                  imgUrl = imgMap.docFeMale;
+                }
+              }
+            }
+            return imgUrl;
+          },
+
+          sickName() {
+              if(this.reportItem.disease) return this.reportItem.disease;
+              return '暂无';
+          },
+
+          time() {
+              if(this.reportItem.bd_time) return this.reportItem.bd_time;
+              return this.reportItem.gz_time;
+          },
+
+          reportStatus() {
+              if(this.reportItem.bd_time) return '已报到';
+              return '未报到';
+          },
+
+          arrowImg() {
+            return imgMap.arrowRight;
+          },
+
+        }
+    }
+</script>
+
+<style scoped>
+  .namecs{
+    font-size:18px;
+    font-weight:bold;
+    color:#222222;
+  }
+
+  .titlecs{
+    font-size:14px;
+    font-weight:normal;
+    margin-top: 2px;
+    color:#666666;
+  }
+
+</style>

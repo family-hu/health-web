@@ -1,0 +1,83 @@
+<template>
+    <div>
+      <div style="padding: 16px; background: white; position: relative">
+        <img class="imgnews" :src="imgSrc" v-if="imgSrc">
+        <div class="name"> {{ newsItem.title }}</div>
+        <div style="display: inline-block; padding-top:16px; width: 100%;">
+          <span class="text">{{ getSrcName }}</span>
+          <span class="time">{{ newsItem.pubTime | dataFormat }}</span>
+        </div>
+      </div>
+      <hr class="full-line" align= center size="1">
+    </div>
+</template>
+
+<script>
+  import * as types from '../../constant/ConstantConfig.js';
+    export default {
+        props: {
+          newsItem: {}
+        },
+
+      filters: {
+        dataFormat(str) {
+          let date = new Date(Date.parse(str.replace(/-/g,"/"))).format('yyyy-MM-dd');
+          return date;
+        }
+      },
+
+        computed: {
+          getSrcName() {
+            if(this.newsItem.newsId) {
+              if(this.newsItem.srcType.value == types.NEWS_SOURCE_HEALTH) {
+                if(this.newsItem.authorObj) {
+                  return this.newsItem.authorObj.authorName;
+                }
+              } else if(this.newsItem.srcType.value == types.NEWS_SOURCE_COMPANY) {
+                if(this.newsItem.orgObj != null) {
+                  return this.newsItem.orgObj.orgNames;
+                }
+              }
+            }
+            return this.newsItem.srcName;
+          },
+          imgSrc() {
+            if(this.newsItem.newsId) {
+              let resList = this.newsItem.resList;
+              if(resList && resList.length > 0) {
+                 for (let i = 0; i < resList.length; i++) {
+                   let srcItem = resList[i];
+                   if(srcItem.recType.value == types.REC_NEWS_LIST_IMAGE) {
+                     return srcItem.imgUrl;
+                   }
+                 }
+              }
+            }
+          }
+        }
+    }
+</script>
+
+<style scoped>
+
+  .imgnews{
+    color: white;
+    width: 108px;
+    height: 80px;
+    float: right;
+  }
+  .name{
+    font-weight: 500;
+    font-size: 16px;
+    color: #222222;
+  }
+  .text{
+    color: rgba(102,102,102,1);
+    font-size: 14px;
+  }
+  .time{
+    color: rgba(102,102,102,1);
+    font-size: 14px;
+    float: right;
+  }
+</style>

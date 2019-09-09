@@ -1,0 +1,159 @@
+<template>
+  <div>
+      <div class="cell" style="position: relative">
+          <img width="76px" height="76px" :src="servImgUrl">
+
+          <div style="float: right; margin-top: 24px;">
+            <div class="money">￥{{ serviceItem.price }}</div>
+            <div class="moneyold">￥{{ serviceItem.priceOri }}</div>
+          </div>
+
+          <div style="display: inline-block; position: absolute; margin-left: 10px; margin-right: 80px;">
+              <div class="namecs">{{ serviceItem.servName }}</div>
+              <div class="accept">{{ acceptName }}<span v-html="space"></span>{{ orgNames }}</div>
+              <div class="shanchang">使用范围：{{ serviceItem.scopeCustom }}</div>
+          </div>
+
+        <div style="margin-left: 90px;">
+          <span v-for="(tag,index) in tags" class="label" :key="tag">{{tag}}</span>  <!--  :style="{color: tagColor(index), 'border-color': tagColor(index) }"  -->
+        </div>
+
+     </div>
+    <hr class="full-line">
+  </div>
+</template>
+
+<script>
+  import * as types from '../../constant/ConstantConfig.js';
+  import imgMap from '../../../static/js/imgmap.js';
+
+  export default {
+    props: {
+      serviceItem: {}
+    },
+
+    computed: {
+      servImgUrl() {
+        if (this.serviceItem.servImgUrl) return this.serviceItem.servImgUrl;
+        if (this.serviceItem.servType.value == types.PACK_PERSON) {
+          return imgMap.packPerson;
+        } else if (this.serviceItem.servType.value == types.PACK_TEAM) {
+          return imgMap.packTeam;
+        }
+        return imgMap.packDept;
+      },
+
+      acceptName() {
+        if(this.serviceItem.servId) {
+          if (this.serviceItem.servType.value == types.PACK_PERSON || this.serviceItem.servType.value == types.PACK_TEAM) {
+            return this.serviceItem.acceptName;
+          }
+        }
+        return '';
+      },
+
+      space() {
+        if(this.acceptName) return "&nbsp;&nbsp;";
+        return '&nbsp;';
+      },
+
+      orgNames() {
+        if(!this.serviceItem.servId)  return '';
+        if(this.serviceItem.orgObj) return this.serviceItem.orgObj.orgNames;
+      },
+
+      tags() {
+        if(this.serviceItem.tags) {
+          let tags = this.serviceItem.tags.split(",");
+          if(tags && tags.length > 3) {
+            tags = tags.splice(0, 3);
+          }
+          return tags;
+        }
+        return [];
+      }
+    },
+
+    methods: {
+      tagColor(index) {
+        let remain = index % 3;
+        if(remain == 0) return "#FF001F";
+        if(remain == 1) return "#0093FF";
+        return "#00B48C";
+      }
+    }
+
+  }
+</script>
+
+<style scoped>
+
+  .cell {
+    background: rgba(255, 255, 255, 1);
+    padding: 10px 16px;
+  }
+
+  .namecs {
+    font-size: 16px;
+    font-weight: bold;
+    color: #222222;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: -webkit-box;
+    -webkit-line-clamp: 1;
+    -webkit-box-orient: vertical;
+  }
+
+  .money {
+    font-size: 16px;
+    font-weight: 500;
+    color: #FF5037;
+    line-height: 20px;
+  }
+
+  .moneyold {
+    padding-left: 10px;
+    font-size: 14px;
+    font-weight: 300;
+    color: #999999;
+    line-height: 13px;
+    margin-top: 6px;
+    text-decoration: line-through;
+  }
+
+  .accept {
+    color: #212F46;
+    font-size: 14px;
+    margin-top: 5px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: -webkit-box;
+    -webkit-line-clamp: 1;
+    -webkit-box-orient: vertical;
+  }
+
+  .shanchang {
+    margin-top: 5px;
+    font-size: 14px;
+    font-weight: 300;
+    color: #7A8093;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: -webkit-box;
+    -webkit-line-clamp: 1;
+    -webkit-box-orient: vertical;
+  }
+
+  .label {
+    padding: 3px 6px;
+    text-align: center;
+    font-size: 12px;
+    border-style: double;
+    border-width: 0px;
+    border-radius: 21px;
+    margin-right: 10px;
+    color: #7A8093;
+    background: #f5f6f6;
+  }
+
+</style>

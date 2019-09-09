@@ -1,0 +1,127 @@
+import axios,{ config } from '../http.js'
+
+const state = {
+
+};
+
+const err = (error) => {
+  throw new Error(error.data.rtnMsg);
+};
+
+const getters = {
+
+};
+
+const mutations = {
+
+};
+
+const actions = {
+  //获取医生列表
+  doctorList: ({ commit }, request) => {
+    return axios.post("doctorList.mo", request, config).then(value => {
+      return {doctorList:value.data.expertList, total: value.data.total.value};
+    }).catch(err);
+  },
+
+  //获取医生列表
+  newDocList: ({ commit }, request) => {
+    return axios.post("newDocList.mo", request, config).then(value => {
+      return {doctorList:value.data.expertList, total: value.data.total.value};
+    }).catch(err);
+  },
+
+  //获取医生详情
+  expertDetailGet: ({
+    commit
+  }, request) => {
+    return axios.post("expertDetailGet.mo", request, config).then(value => {
+      return value.data.expertList;
+    }).catch(err);
+  },
+
+  //获取全部科室
+  orgDeptGet: ({
+      commit
+    }, request) => {
+    return axios.post("orgDeptGet.mo", request, config).then(value => {
+      return value.data.dataList;
+    }).catch(err);
+  },
+
+  //获取特色科室
+  getDeptList: ({
+    commit
+  }, request) => {
+    return axios.post("deptList.mo", request, config).then(value => {
+      return value.data.dataList;
+    }).catch(err);
+  },
+
+  //获取会话详情
+  imConversationList:({ commit }, request) => {
+    return axios.post("imConversationList.mo", request, config).then(value => {
+      return value.data.dataList;
+    }).catch(err);
+  },
+
+  //获取关注医生,医院列表
+  myFavList:({ commit }, request) => {
+    return axios.post("myFavList.mo", request, config).then(value => {
+      return value.data;
+    }).catch(err);
+  },
+
+  //评价列表
+  evaList:({ commit }, request) => {
+    return axios.post("evaList.mo", request, config).then(value => {
+      return {evaList: value.data.evaList, total: value.data.total.value};
+    }).catch(err);
+  },
+
+  subscribeDocInfo:({ commit }, request) => {
+    return axios.post("subscribeDocInfo.mo", request, config).then(value => {
+      return value.data.docInfo;
+    }).catch(err);
+  },
+
+  orgAdvList:({ commit }, request) => {
+    return axios.post("orgAdvList.mo", request, config).then(value => {
+      return value.data.advList;
+    }).catch(err);
+  },
+
+  //患者报到
+  perRegistAdd:({ commit }, request) => {
+    return axios.post("perRegistAdd.mo", request, config).then(value => {
+      return value.data.perRegistObj;
+    }).catch(err);
+  },
+
+  //发布评论
+  busiEva:({ commit }, request) => {
+    return axios.post("busiEva.mo", request, config).then(value => {
+      return value.data;
+    }).catch(err);
+  },
+
+  //发布画像
+  busiDraw:({ commit }, request) => {
+    return axios.post("busiDraw.mo", request, config).then(value => {
+      return value.data;
+    }).catch(err);
+  },
+
+  commentDictList:({ commit }, request) => {
+    return axios.post("dictList.mo", request, config).then(value => {
+      return value.data.dictList;
+    }).catch(err);
+  },
+};
+
+export default {
+  state,
+  mutations,
+  actions,
+  getters
+}

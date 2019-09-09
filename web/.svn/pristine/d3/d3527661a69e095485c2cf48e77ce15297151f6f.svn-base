@@ -1,0 +1,226 @@
+import axios,{ config , shoppingConfig ,shoppingConfigPay} from '../http.js'
+
+const state = {
+
+};
+
+const err = (error) => {
+  throw new Error(error.data.rtnMsg);
+};
+const err2 = (error2) => {
+  throw new Error(error2.data.msg);
+};
+
+const getters = {
+
+};
+
+const mutations = {
+
+};
+
+const actions = {
+  //获取服务列表
+  servInfoList:({ commit }, request) => {
+    return axios.post("servInfoList.mo", request, config).then(value => {
+      return value.data.dataList;
+    }).catch(err);
+  },
+
+  //获取机构详情
+  orgDetail:({ commit }, request) => {
+    return axios.post("newsAuthorOrgGet.mo", request, config).then(value => {
+      return value.data.orgObj;
+    }).catch(err);
+  },
+
+  //获取服务包详情
+  servInfoGet:({ commit }, request) => {
+    return axios.post("servInfoGet.mo", request, config).then(value => {
+      return value.data.servObj;
+    }).catch(err);
+  },
+
+  //获取套餐列表
+  packagesList: ({commit}, request) => {
+    return axios.post("medical/packages/api/all", request, shoppingConfig).then(data => {
+      return data.data;
+    }).catch(err);
+  },
+  //获取套餐详情
+  packagesDetail: ({
+    commit
+  }, request) => {
+    return axios.post("medical/packages/api/info", request, shoppingConfig).then(data => {
+      return data.data;
+    }).catch(err);
+  },
+  //获取服务单位详情
+  serviceCompany: ({
+    commit
+  }, request) => {
+    return axios.post("medical/serviceCompany/api/info", request, shoppingConfig).then(data => {
+      return data.data;
+    }).catch(err);
+  },
+  //获取套餐项目列表
+  packagesProductList: ({
+    commit
+  }, request) => {
+    return axios.post("medical/packagesProduct/api/productList", request, shoppingConfig).then(data => {
+      return data.data;
+    }).catch(err);
+  },
+  //评价
+  shoppingCommentList: ({
+    commit
+  }, request) => {
+    return axios.post("medical/appraisal/api/list", request, shoppingConfig).then(data => {
+      return data.data;
+    }).catch(err);
+  },
+  //套餐加项列表
+  addPackagesProductList: ({
+    commit
+  }, request) => {
+    return axios.post("medical/packagesProduct/api/addItemList", request, shoppingConfig).then(data => {
+      return data.data;
+    }).catch(err);
+  },
+  //查询套餐加项列表
+  queryAddProductList: ({
+    commit
+  }, request) => {
+    return axios.post("medical/packagesProduct/api/queryByIdList", request, shoppingConfig).then(data => {
+      return data.data;
+    }).catch(err);
+  },
+  //预约信息保存
+  userMsgSave: ({
+    commit
+  }, request) => {
+    return axios.post("medical/reservationUser/api/save", request, shoppingConfig).then(data => {
+      return data.data;
+    }).catch(err);
+  },
+  //预约信息列表
+  userMsgList: ({
+    commit
+  }, request) => {
+    return axios.post("medical/reservationUser/api/list", request, shoppingConfig).then(data => {
+      return data.data;
+    }).catch(err);
+  },
+  //预约信息更新
+  userMsgUpdate: ({
+    commit
+  }, request) => {
+    return axios.post("medical/reservationUser/api/update", request, shoppingConfig).then(data => {
+      return data.data;
+    }).catch(err);
+  },
+  //预约信息删除
+  userMsgDelete: ({
+    commit
+  }, request) => {
+    return axios.post("medical/reservationUser/api/delete", request, shoppingConfig).then(data => {
+      return data.data;
+    }).catch(err);
+  },
+  // //订单列表
+  // shopOrderList: ({
+  //   commit
+  // }, request) => {
+  //   return axios.post("/orders/orderUnity/api/list", request, shoppingConfig).then(data => {
+  //     return data.data;
+  //   }).catch(err2);
+  // },
+  // //订单详情-确认信息
+  // shopConfirmOrderDetail: ({
+  //   commit
+  // }, request) => {
+  //   return axios.post("/orders/serviceOrder/api/confirmInfo", request, shoppingConfig).then(data => {
+  //     return data.data;
+  //   }).catch(err2);
+  // },
+  // //取消订单
+  // shopCancelOrder: ({
+  //   commit
+  // }, request) => {
+  //   return axios.post("/orders/orderUnity/api/cancel", request, shoppingConfig).then(data => {
+  //     return data.data;
+  //   }).catch(err2);
+  // },
+  //筛选分类列表
+  queryByType: ({
+    commit
+  }, request) => {
+    return axios.post("mall/category/api/queryByType", request, shoppingConfig).then(data => {
+      return data.data;
+    }).catch(err);
+  },
+  //筛选性别和年龄
+  queryByCodeList: ({
+    commit
+  }, request) => {
+    return axios.post("system/dictionary/api/queryByCodeList", request, shoppingConfig).then(data => {
+      return data.data;
+    }).catch(err);
+  },
+  //图片上传
+  commentUploadImg: ({
+    commit
+  }, request) => {
+    return axios.post("system/file/api/uploadImg", request, shoppingConfig).then(data => {
+      return data.data;
+    }).catch(err);
+  },
+  //发起评论
+  getComment: ({
+    commit
+  }, request) => {
+    return axios.post("medical/appraisal/api/save", request, shoppingConfig).then(data => {
+      return data.data;
+    }).catch(err);
+  },
+  //创建订单
+  shopOrderCreate: ({
+    commit
+  }, request) => {
+    return axios.post("sk/jvFinOrderCreate.mo", request, shoppingConfigPay).then(data => {
+      return data.data;
+    }).catch(err);
+  },
+  //确认订单
+  shopOrderConfirm: ({
+    commit
+  }, request) => {
+    return axios.post("sk/jvFinOrderConfirm.mo", request, shoppingConfigPay).then(data => {
+      return data;
+    }).catch(err);
+  },
+  //订单列表
+  shopOrderList: ({
+    commit
+  }, request) => {
+    return axios.post("sk/jvFinOrderQuery.mo", request, shoppingConfigPay).then(data => {
+      return data.data;
+    }).catch(err);
+  },
+  //取消订单-退款
+  shopCancelOrder: ({
+    commit
+  }, request) => {
+    return axios.post("sk/jvFinOrderRefound.mo", request, shoppingConfigPay).then(data => {
+      return data.data;
+    }).catch(err);
+  },
+
+};
+
+export default {
+  state,
+  mutations,
+  actions,
+  getters
+}

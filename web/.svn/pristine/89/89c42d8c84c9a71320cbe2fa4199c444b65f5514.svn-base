@@ -1,0 +1,692 @@
+<template>
+    <div>
+      <div class="seach_cell">
+        <div class="input-box">
+          <img src="/static/img/Shape@2x.png" alt="">
+          <input ref="getVal" @blur="getSeachVal" placeholder="搜索你需要的专家" class="inputcs">
+        </div>
+      </div>
+      <div style="height: 164px;">
+        <mt-swipe :auto="5000" v-if='adList.length < 3'>
+          <mt-swipe-item  v-for="ad in adList" :key="ad.advId.value">
+              <img :src="ad.imgUrl" height="164px" width="100%" alt="">
+            </mt-swipe-item>
+        </mt-swipe>
+        <el-carousel v-else :interval="4000" type="card" height="164px" indicator-position="outside" autoplay>
+          <el-carousel-item  v-for="ad in adList" :key="ad.advId.value" width="100%" height="164px">
+            <img :src="ad.imgUrl" alt="" width="100%" height="164px">
+          </el-carousel-item>
+        </el-carousel>
+      </div>
+      <div :class=" barFixed ? 'boxFixed' : 'main' ">
+        <div class="box">
+          <dl>
+            <dt><a href="#experts"><img src="/static/img/experts.png" alt=""></a></dt>
+            <dd>推荐专家</dd>
+          </dl>
+          <dl>
+            <dt><a href="#server"><img src="/static/img/server.png" alt=""></a></dt>
+            <dd>健康服务</dd>
+          </dl>
+          <dl>
+            <dt><a href="#doctor"><img src="/static/img/my_doctor.png" alt=""></a></dt>
+            <dd>我的医生</dd>
+          </dl>
+          <dl>
+            <dt><a href="#order"><img src="/static/img/order.png" alt=""></a></dt>
+            <dd>我的订单</dd>
+          </dl>
+        </div>
+      </div>
+      <!-- 导航固定占位区域 :class="barFixed ? 'offsetTop' : ''"-->
+      <div :class=" barFixed ? 'boxFixedTop' : '' ">
+        <!-- v-if="false" -->
+        <div class="cell" style="margin-top:10px">
+          <div class="main">
+            <div class="box" :class="display ? 'hide' : 'show'">
+              <dl v-for="(item,index) in hotDataList" :key="index"  @click="goDoctor(item)">
+                <dt><img :src="'/static/img/'+item.hotDataImg+'@2x.png'" alt=""></dt>
+                <dd>{{item.dictName}}</dd>
+              </dl>
+            </div>
+          </div>
+          <div v-if="show" class="upDown" @click="goUp">展开<img :class="display ? '' : 'on'" src="/static/img/upDown.png" alt=""></div>
+          <div class="title" id="experts">
+            <div class="h3"><span></span>精选专家</div>
+            <a @click="goDoctorMore('more')" class="more">更多<img src="/static/img/more.png" alt=""></a>
+          </div>
+          <div class="full-line"></div>
+          <ul infinite-scroll-disabled="loading" infinite-scroll-distance="10" infinite-scroll-immediate-check="false">
+            <doctor-item v-for="(doctorDetail,index) in doctorList" :key="index" :doctorDetail="doctorDetail" @click.native="toDetail(doctorDetail)"></doctor-item>
+          </ul>
+        </div>
+        <div class="cell" style="margin-top:10px">
+          <div class="title" id="server">
+            <div class="h3"><span></span>健康服务</div>
+            <!-- <a @click="goDoctorMore('more')" class="more">更多<img src="/static/img/more.png" alt=""></a>s -->
+          </div>
+          <div class="cell_box">
+            <health-service-item v-for="(healthServiceItem , index) in serviceList" :key="index" :healthServiceItem="healthServiceItem"></health-service-item>
+          </div>
+        </div>
+        <div class="cell" style="margin-top:10px">
+          <div class="title" id="doctor">
+            <div class="h3"><span></span>特色科室</div>
+          </div>
+          <div style="height: 300px;" v-if='deptList.length < 3'>
+            <mt-swipe :auto="5000" height="300px">
+              <mt-swipe-item  v-for="(item,index) in deptList" :key="index">
+                  <img :src="item.deptImgUrl" width="100%" height="189px" alt="" @click="featuresDepart(item)">
+                  <div class="carousel_text carousel_box">
+                    <h3>{{item.deptName}}</h3>
+                    <p class="depText">{{item.desp}}</p>
+                  </div>
+              </mt-swipe-item>
+            </mt-swipe>
+          </div>
+          <el-carousel v-else :interval="4000" type="card" height="300px" indicator-position="none" autoplay>
+            <el-carousel-item v-for="(item,index) in deptList" :key="index" height="300px">
+              <img :src="item.deptImgUrl" alt="" width="100%" height="189px" @click="featuresDepart(item)">
+              <div class="carousel_text">
+                <h3>{{item.deptName}}</h3>
+                <p class="depText">{{item.desp}}</p>
+              </div>
+            </el-carousel-item>
+          </el-carousel>
+        </div>
+        <div class="cell" style="margin-top: 10px;padding-top: 16px">
+          <div class="title" id="order">
+            <div class="h3"><span></span>健康科普</div>
+            <a @click="goTab('news')" class="more">更多<img src="/static/img/more.png" alt=""></a>
+          </div>
+          <!-- <span class="titlemin">行业动态&健康资讯</span> -->
+          <news-item v-for="item in newsList" :key="item.newsId.value" :newsItem="item" @click.native="toNewsDetail(item)" ></news-item>
+        </div>
+      </div>
+    </div>
+</template>
+
+<script>
+import DoctorItem from "../doctor/DoctorItem.vue";
+import Header from "../Header.vue";
+import imgMap from "../../../static/js/imgmap.js";
+import NewsItem from "../news/NewsItem.vue";
+import HealthServiceItem from "../service/HealthServiceItem.vue";
+import * as types from "../../constant/ConstantConfig.js";
+export default {
+  data() {
+    return {
+      adList: [],
+      newsList: [],
+      doctorList: [],
+      orgId: this.$route.query.orgId,// '890429085795262464'
+      type: this.$route.query.type,
+      hotDataList: [],
+      serviceList: [],
+      deptList: [],
+      loading: false,
+      display: false,
+      show: false,
+      page: 1,
+      loaded: false ,//是否加载完成
+      barFixed: false, //是否固定导航
+    };
+  },
+
+  components: {
+    newsItem: NewsItem,
+    healthServiceItem: HealthServiceItem,
+    doctorItem: DoctorItem,
+    appHeader: Header
+  },
+
+  props: ["orgId"],
+
+  computed: {
+
+  },
+
+  mounted() {
+    window.addEventListener('scroll', this.handleScroll ,true)
+  },
+
+  methods: {
+    //特色科室
+    featuresDepart(item) {
+      this.$router.push({
+        path: "featuresDepartment",
+        query: { deptId: item.deptId.value, orgId: this.orgId }
+      });
+    },
+    getSeachVal(){
+      let val = this.$refs.getVal.value;
+      this.$router.push({
+        path: "doctorOneList",
+        query: { drName: val, orgId: this.orgId }
+      });
+
+    },
+    goUp() {
+      this.display = !this.display;
+    },
+    toDetail(doctorDetail) {
+      this.$router.push({
+        path: "doctorDetail",
+        query: { userId: doctorDetail.userId.value }
+      });
+    },
+    goDoctor(item) {
+      this.$router.push({
+        path: "doctorOneList",
+        query: { deptId: item.dictId.value, orgId: this.orgId ,dictName: item.dictName}
+      });
+    },
+    //医生列表更多
+    goDoctorMore(type) {
+       this.$router.push({path: "doctorOneList", query:{type: type, orgId: this.orgId}});
+    },
+    //资讯更多
+    goTab(index) {
+      this.$emit("goTab", index);
+    },
+
+    //资讯详情
+    toNewsDetail(newsDetail) {
+      window.location.href = types.NEWS_DETAIL + newsDetail.newsId.value;
+    },
+    //健康服务--套餐列表
+    getPackagesList() {
+      let vm = this;
+      const request = {
+        pageParam:{
+          pageSize: 4,
+          pageNum: this.page,
+        },
+        packages:{
+          orgId: '1087171373522001920', //this.orgId
+        },
+        sortType : "sales",
+	      // sortMethod : "asc",
+      };
+      this.$store
+        .dispatch("packagesList", request)
+        .then(data => {
+          if (data.data) {
+            this.serviceList = data.data.list;
+          }
+        })
+        .catch(error => {
+          this.$toast(error.message);
+        });
+    },
+    //banner
+    orgAdvList() {
+      let vm = this;
+      const request = { orgId: this.orgId };
+      this.$store
+        .dispatch("orgAdvList", request)
+        .then(adList => {
+          if (adList) {
+            for (let i = 0; i < adList.length; i++) {
+              vm.adList.push(adList[i]);
+            }
+          }
+        })
+        .catch(error => {
+          this.$toast(error.message);
+        });
+    },
+    //特色科室
+    requestServiceList() {
+      let request = {
+        orgId: this.orgId,
+        deptType : 1030101
+      };
+      let vm = this;
+      this.$store.dispatch("getDeptList", request).then(dataList => {
+        for(let i = 0; i < dataList.length; i++){
+            dataList[i].desp = '肿瘤康复科，是无锡地区癌症患者和热衷于癌症康复事业的医务工作者及社会各界爱心人士的群体，是特色科室';
+            let nowLength = dataList[i].desp.length;
+            if (nowLength > 46) {
+              dataList[i].desp = dataList[i].desp.substr(0, 46) + '...';
+            }
+            vm.deptList.push(dataList[i]);
+        }
+      })
+      .catch(error => {
+          vm.$toast(error.message);
+      });
+    },
+    //健康资讯
+    requestNewsList() {
+      let request = {
+        orgId: this.orgId,
+        tpId: 0,
+        type: 1051,
+        pageNum: this.page,
+        pageSize: 2
+      };
+      let vm = this;
+      this.$store
+        .dispatch("newsList", request)
+        .then(newsList => {
+          vm.newsList = newsList;
+        })
+        .catch(error => {
+          this.$toast(error.message);
+        });
+    },
+    //医生列表
+    requestDoctorList() {
+      let request = {
+        deptId: 0,
+        diseaseId: 0,
+        drName: "",
+        orgId: this.orgId,
+        regCode: 0,
+        serviceType: 0,
+        sortType: 5,
+        type: 0,
+        pageNum: this.page,
+        pageSize: 3
+      };
+      let vm = this;
+      this.$store
+        .dispatch("doctorList", request)
+        .then(data => {
+          if (data.doctorList) {
+            for (let i = 0; i < data.doctorList.length; i++) {
+              vm.doctorList.push(data.doctorList[i]);
+            }
+          }
+        })
+        .catch(error => {
+          this.$toast(error.message);
+        });
+    },
+    //热门科室
+    requestTypeList() {
+      this.loading = true;
+      let request = {
+        orgId: this.orgId
+      };
+      // let that = this;
+      this.$store
+        .dispatch("orgDeptGet", request)
+        .then(data => {
+          if (data.length > 0) {
+            for (let i = 0; i < data.length; i++) {
+              if (data[i].upId.value == "0") {
+                this.hotDataList.push(data[i]);
+                let img = data[i].dictName;
+                switch (img) {
+                  case "外科":
+                    data[i].hotDataImg = "out";
+                    break;
+                  case "内科":
+                    data[i].hotDataImg = "in";
+                    break;
+                  case "口腔科":
+                    data[i].hotDataImg = "tooth";
+                    break;
+                  case "眼科":
+                    data[i].hotDataImg = "eye";
+                    break;
+                  case "男科":
+                    data[i].hotDataImg = "man";
+                    break;
+                  case "妇产科":
+                    data[i].hotDataImg = "women";
+                    break;
+                  case "儿科":
+                    data[i].hotDataImg = "children";
+                    break;
+                  case "皮肤性病科":
+                    data[i].hotDataImg = "skin";
+                    break;
+                  case "精神科":
+                    data[i].hotDataImg = "mind";
+                    break;
+                  case "耳鼻喉头颈科":
+                    data[i].hotDataImg = "ent";
+                    break;
+                  case "肿瘤科":
+                    data[i].hotDataImg = "tumor";
+                    break;
+                  case "骨科":
+                    data[i].hotDataImg = "bone";
+                    break;
+                  case "中医科":
+                    data[i].hotDataImg = "medicine";
+                    break;
+                  case "结核病科":
+                    data[i].hotDataImg = "phthisis";
+                    break;
+                  case "生殖中心":
+                    data[i].hotDataImg = "reproductive";
+                    break;
+                  case "烧伤科":
+                    data[i].hotDataImg = "burn";
+                    break;
+                  case "康复医学科":
+                    data[i].hotDataImg = "recovery";
+                    break;
+                  case "生殖中心":
+                    data[i].hotDataImg = "service2";
+                    break;
+                  case "中西医结合科":
+                    data[i].hotDataImg = "medicine2";
+                    break;
+                  default:
+                    data[i].hotDataImg = "common";
+                    break;
+                }
+              }
+            }
+            if (this.hotDataList.length >= 9) {
+              this.display = true;
+              this.show = true;
+            } else {
+              this.display = false;
+              this.show = false;
+            }
+          }
+
+          this.loading = false;
+        })
+        .catch(e => {
+          this.loading = false;
+          this.$toast(e.message);
+        });
+    },
+    // 监听滚动事件
+    handleScroll(e){
+      let offsetTop = e.target.scrollTop;
+      if(offsetTop >= 215){
+        this.barFixed = true
+      }else{
+        this.barFixed = false
+      }
+    },
+
+  },
+
+  created() {
+    this.orgAdvList();//banner图
+    this.requestNewsList();//健康资讯
+    this.requestDoctorList();
+    this.requestTypeList();
+    this.requestServiceList();
+    this.getPackagesList(); //健康服务
+    console.log("this.orgId", this.orgId);
+    if(this.orgId){
+      localStorage.setItem('orgId',this.orgId);
+    }
+  },
+
+  destroyed () {
+    window.removeEventListener('scroll', this.handleScroll)
+  },
+};
+</script>
+
+<style scoped>
+ul,
+li , h3 ,p {
+  padding: 0;
+  list-style: none;
+  margin: 0;
+}
+.boxFixedTop{
+  position: relative;
+  top: 136px;
+  z-index: 100;
+}
+/* element-ui card */
+/deep/ .el-carousel__item--card{
+  /* border:1px solid red; */
+  background: #fff;
+}
+/deep/ .el-carousel__item--card.is-active{
+  z-index:2;
+  left: -20%;
+  width: 91%;
+}
+/deep/.is-active>.carousel_text{
+  display: block ;
+}
+/deep/ .el-carousel__button{
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+}
+/* element-ui card ---- end*/
+
+/deep/ ::-webkit-input-placeholder { /* WebKit browsers */
+    color:    #999;
+}
+/deep/ :-moz-placeholder { /* Mozilla Firefox 4 to 18 */
+   color:    #999;
+}
+/deep/ ::-moz-placeholder { /* Mozilla Firefox 19+ */
+   color:    #999;
+}
+/deep/ :-ms-input-placeholder { /* Internet Explorer 10+ */
+   color:    #999;
+}
+.cell_box{
+  background: rgba(255, 255, 255, 1);
+  overflow: hidden;
+  padding: 0 16px;
+  width: 100%;
+  margin-left: -12px;
+}
+.carousel_text{
+  display: none;
+}
+.carousel_box{
+  padding: 0 18px;
+}
+.carousel_text h3{
+  color: #000;
+  font-size: 18px;
+  font-weight: 500;
+  margin-top: 10px;
+  margin-bottom: 0;
+}
+.carousel_text p{
+  color: #7A8093;
+  font-size: 14px;
+  font-weight: 400;
+  margin-top: 10px;
+}
+.seach_cell{
+  background: #f7f7f7;
+  padding: 10px 0;
+}
+.input-box{
+  width: 90%;
+  height: 30px;
+  border-radius: 15px;
+  box-shadow: 0px 4px 15px 0px rgba(153, 153, 153, 0.24);
+  background: #fff;
+  text-align: center;
+  margin: 0 auto
+}
+.input-box img{
+  width: 16px;
+  height: 18px;
+  position: relative;
+  top:4px;
+}
+.title {
+  padding: 14px 16px;
+  background: #fff;
+  overflow: hidden;
+}
+.title .h3 {
+  float: left;
+  color: #000;
+  font-size: 18px;
+  font-weight: 500;
+}
+.h3 span {
+  display: inline-block;
+  width: 3px;
+  height: 16px;
+  background: #0093ff;
+  margin-right: 5px;
+  position: relative;
+  top: 2px;
+}
+.more {
+  float: right;
+  font-size: 13px;
+  color: #7A8093;
+  text-decoration: none;
+  font-weight: 400;
+  margin-top: 3px;
+}
+.more img{
+  width: 10px;
+  height: 10px;
+}
+.main {
+  background: #fff;
+  padding: 14px 16px;
+}
+.box {
+  /* display: flex; */
+  overflow: hidden;
+  transition: transform .3s;
+}
+.hide{
+  height: 180px;
+}
+.show{
+  height: auto;
+}
+.box dl {
+  text-align: center;
+  /* margin-right: 55px; */
+  float: left;
+  width: 25%;
+}
+.box dt img {
+  width: 40px;
+  height: 40px;
+}
+.box dd {
+  margin: 0;
+  text-align: center;
+  font-size: 12px;
+  color: #666666;
+  margin-top: 5px;
+}
+.boxFixed{
+  position: fixed;
+  top: 0;
+  z-index: 200;
+  background: #fff;
+  width: 100%;
+}
+.upDown{
+  height: 44px;
+  line-height: 44px;
+  border-top:1px solid #eee;
+  text-align: center;
+  color: #666;
+  font-size: 14px;
+  background: #fff;
+  margin: 0 20px;
+}
+.upDown img{
+  width: 10px;
+  height: 10px;
+  margin-left: 5px;
+  transition: transform .3s;
+}
+.on{
+  transform: rotateZ(180deg);
+}
+.btn-box{
+  width: 100%;
+  background: #fff;
+  margin: 10px 0;
+  display: flex;
+  padding: 14px 30px;
+  justify-content: space-between;
+  box-sizing: border-box;
+}
+.btn-box img{
+  width: 42%;
+  max-height: 73px;
+}
+.inputcs {
+  font-weight: 400;
+  color: black;
+  text-align: center;
+  font-size: 14px;
+  width: 80%;
+  height: 28px;
+  line-height: 28px;
+  border: none;
+  text-align: left;
+  padding: 0 5px;
+  box-sizing: border-box;
+}
+.cell {
+  background-color: white;
+  position: relative;
+}
+.itme0 {
+  width: 24%;
+  text-align: center;
+  display: inline-block;
+}
+.itme1 {
+  width: 24%;
+  text-align: center;
+  display: inline-block;
+}
+.itme2 {
+  width: 24%;
+  text-align: center;
+  float: right;
+  display: inline-block;
+}
+.itme3 {
+  width: 24%;
+  text-align: center;
+  display: inline-block;
+}
+.icon {
+  width: 40px;
+  height: 40px;
+}
+.titlemin {
+  font-size: 14px;
+  font-weight: 400;
+  color: #999999;
+  margin-left: 16px;
+  line-height: 25px;
+}
+.btn {
+  color: #999999;
+  float: right;
+  margin-right: 16px;
+  font-size: 14px;
+  background: transparent;
+  outline: none;
+  border: 0;
+}
+
+.text {
+  color: #222222;
+  font-weight: bold;
+  font-size: 13px;
+  max-height: 60px;
+  /*display: block;*/
+  /*display:inlie-block;*/
+}
+</style>

@@ -1,0 +1,129 @@
+const OrgInfo = () => import('./components/sign/OrgInfo.vue');
+const UserInfo = () => import('./components/sign/UserInfo.vue');
+const PackInfo = () => import('./components/sign/PackInfo.vue');
+const PackDetail = () => import('./components/sign/PackDetail.vue');
+const Sign = () => import('./components/sign/Sign.vue');
+const CanvasSign = () => import('./components/sign/CanvasSign.vue');
+const SignSuccess = () => import('./components/sign/SignSuccess.vue');
+
+//医生列表
+const DoctorList = () => import('./components/doctor/DoctorList.vue');
+const DoctorOneList = () => import('./components/doctor/DoctorOneList.vue');
+const DoctorDetail = () => import('./components/doctor/DoctorDetail.vue');
+const FocusDoctorList = () => import('./components/doctor/FocusDoctorList.vue');
+const EvaList = () => import('./components/doctor/EvaList.vue');
+const DoctorAppointHome = () => import('./components/doctor/DoctorAppointHome.vue');
+const FocusHospitalList = () => import('./components/doctor/FocusHospitalList.vue');
+const Report = () => import('./components/doctor/Report.vue');
+const DoctorConsultationFragment = () => import('./components/doctor/DoctorConsultationFragment.vue');
+
+//聊天
+const Chat = () => import('./components/chat/Chat.vue');
+const ConversationList = () => import('./components/chat/ConversationList.vue');
+
+//下单
+const OrderSubmitPay = () => import('./components/order/OrderSubmitPay.vue');
+const OrderList = () => import('./components/order/OrderList.vue');
+const OrderDetail = () => import('./components/order/OrderDetail.vue');
+const AppointSubmit = () => import('./components/order/AppointSubmit.vue');
+const OrderFragment = () => import('./components/order/OrderFragment.vue');
+const AppointOrderDetail = () => import('./components/order/AppointOrderDetail.vue');
+const DocumentDetail = () => import('./components/order/DocumentDetail.vue');
+const ServiceSubmitPay = () => import('./components/order/ServiceSubmitPay.vue');
+
+//user
+const Mine = () => import('./components/user/Mine.vue');
+const UserDetail = () => import('./components/user/UserDetail.vue');
+const PatientReport = () => import('./components/user/PatientReport.vue');
+
+//首页
+const Main = () => import('./components/Main.vue');
+
+//登录
+const Login = () => import('./components/login/Login.vue');
+
+//服务包
+const ServiceList = () => import('./components/service/ServiceList.vue');
+const ServiceDetail = () => import('./components/service/ServiceDetail.vue');
+
+//资讯
+const NewsList = () => import('./components/news/NewsList.vue');
+const NewsDetail = () => import('./components/news/NewsDetail.vue');
+
+//心理咨询
+const ConsultationMain = () => import('./components/consultation/ConsultationMain.vue');
+const ConsultationDetail = () => import('./components/consultation/ConsultationDetail.vue');
+const ConsultationList = () => import('./components/consultation/ConsultationList.vue');
+const ConsultationTest = () => import('./components/consultation/ConsultationTest.vue');
+const ConsultationResult = () => import('./components/consultation/ConsultationResult.vue');
+const ConsultationUserInfo = () => import('./components/consultation/ConsultationUserInfo.vue');
+const ConsultationCommentAdd = () => import('./components/consultation/ConsultationCommentAdd.vue');
+const ConsultationEvaList = () => import('./components/consultation/ConsultationEvaList.vue');
+
+export const routes = [
+    {path: "/login", component: Login, meta: {title: "登录"}},
+
+  //sign
+    {path: "/org", component: OrgInfo},
+    {path: "/user", component: UserInfo, name: "user"},
+    {path: "/pack", component: PackInfo},
+    {path: "/packdetail", component: PackDetail},
+    {path: "/sign", component: Sign},
+    {path: "/signature", component: CanvasSign},
+    {path: "/success", component: SignSuccess},
+
+
+  //doctor
+    {path: "/doctorList", component: DoctorList, meta: {title: '医生列表', keepAlive: false}},//全部列表
+    {path: "/doctorOneList", component: DoctorOneList, meta: {title: '医生列表', keepAlive: false}},//对应科室列表
+    {path: "/doctorDetail", component: DoctorDetail, meta: {title: '医生详情', keepAlive: false}},
+    {path: "/focusDoctorList", component: FocusDoctorList, meta: {title: "我的医生", keepAlive: false}},
+    {path: "/evaList", component: EvaList, meta: {title: "评价列表", keepAlive: false}},
+    {path: "/doctorAppoint", component: DoctorAppointHome, meta: {title : '预约', keepAlive: false}},
+    {path: "/focusHospitalList", component: FocusHospitalList, meta: {title : "我的医院", keepAlive: false}},
+    {path: "/report", component: Report, meta: {title: '诊后报到单', keepAlive: false}},
+    {path: "/doctorConsultation", component: DoctorConsultationFragment, meta: {title: '我的医生', keepAlive: false}},
+
+    //chat
+    {path: "/chat", component: Chat, meta: {title: "聊天", keepAlive: false}},
+    {path: "/conversationList", component: ConversationList, meta: {title: "我的咨询", keepAlive: false}},
+
+  //order
+    {path: "/orderSubmitPay", component: OrderSubmitPay, meta: {title: "订单提交", keepAlive: false}},
+    {path: "/orderList", component: OrderList, meta: {title: "我的问诊订单", keepAlive: false}},
+    {path: "/orderDetail", component: OrderDetail, meta: {title: "订单详情", keepAlive: false}},
+    {path: "/appointSubmit", component: AppointSubmit, meta: {title: "提交预约信息", keepAlive: false}},
+    {path: "/order", component: OrderFragment, meta: {title: '我的订单', keepAlive: false}},
+    {path: "/appointOrderDetail", component: AppointOrderDetail, meta: {title: '预约详情', keepAlive: false}},
+    {path: "/documentDetail", component: DocumentDetail, meta: {title: '诊疗详情', keepAlive: false}},
+    {path: "/serviceSubmitPay", component: ServiceSubmitPay, meta: {title: '订单提交', keepAlive: false}},
+
+  //service
+    {path: "/serviceList", component: ServiceList, meta: {title: "服务包列表", keepAlive: false}},
+    {path: "/serviceDetail", component: ServiceDetail, meta: {title: "服务包详情", keepAlive: false}},
+
+  //news
+    {path: "/newsList", component: NewsList, meta: {title: "资讯列表", keepAlive: false}},
+    {path: "/newsDetail", component: NewsDetail, meta: {title: "咨询详情", keepAlive: false}},
+
+  //user
+    {path: "/mine", component: Mine, meta: {title: "我的", keepAlive: false}},
+    {path: "/userDetail", component: UserDetail, meta: {title: "个人信息", keepAlive: false}},
+    {path: "/patientReport", component: PatientReport, meta: {title: '信息完善', keepAlive: false}},
+
+
+  //consultation  咨询
+    {path: '/consultation', component: ConsultationMain, meta: {title: '心理测评', keepAlive: true}},
+    {path: '/consultationDetail', component: ConsultationDetail, meta: {title: '', keepAlive: false}},
+    {path: '/consultationList', component: ConsultationList, meta: {title: '测试', keepAlive: false}},
+    {path: '/consultationTest', component: ConsultationTest, meta: {title: '测评', keepAlive: false}},
+    {path: '/consultationResult', component: ConsultationResult, meta: {title: '测试结果', keepAlive: false}},
+    {path: '/consultationUserInfo', component: ConsultationUserInfo, meta: {title: '我的', keepAlive: false}},
+    {path: '/consultationCommentAdd', component: ConsultationCommentAdd, meta: {title: '发布评论', keepAlive: false}},
+    {path: '/consultationEvaList', component: ConsultationEvaList, meta: {title: '全部评价', keepAlive: false}},
+
+    {path: "/home", component: Main, meta: {title: "首页", keepAlive: true}},
+    {path: "", component: Login, meta: {title: "登录", keepAlive: false}},
+    {path: '*', redirect:"/"}
+];
+

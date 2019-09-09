@@ -1,0 +1,525 @@
+<template>
+    <div>
+      <div class="bottom" style="display: inline-block;width: 100%; z-index: 99;" >
+        <div style="margin-top: 23px;padding-left: 44px;display: inline-block;float: left">
+          <img :src="consultationWantImg" width="24px" height="24px" @click="collect">
+        </div>
+        <div class="text6">想测</div>
+        <div class="btn" @click="startBuy">立即购买</div>
+      </div>
+
+      <div class="wrap">
+        <img height="200px" width="100%" :src="consultationImg" style="vertical-align: top;" >
+
+        <div class="head">
+          <div class="title bold">{{ consultationItem.title }}</div>
+          <div style="margin: 6px 0;">
+            <span class="price bold">{{ consultationPrice }}</span>
+            <span class="priceOld">¥{{ consultationPriceOld }}</span>
+          </div>
+          <div class="text">{{ consultationItem.subCount | lossValue }}道精选试题&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;{{ consultationItem.reportCount | lossValue }}页专业报告&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;{{ consultationItem.orderCount | lossValue }}人已测</div>
+        </div>
+
+        <div style="padding: 16px;margin-top: 10px; background: white;">
+
+          <div class="title1 bold">测试介绍</div>
+
+          <div class="content">{{ consultationItem.introduce }}</div>
+
+          <div class="tip">
+            <div class="title1 bold">温馨提示</div>
+            <div class="content" style="padding-bottom: 0;line-height: 22px;">
+              <div>1. 测试题：{{ consultationItem.subCount | lossValue }}题，测试时间：约{{ consultationItem.duration | lossValue }}分钟。</div>
+              <div>2. 测评不能重测，做题时请根据实际情况作答，答题结束后会生成一份专业报告。 </div>
+              <div>3. 付费成功后，页面跳转可能需要时间进行加载，建议在网络较好的情况下进行测试。 </div>
+              <div>4. 购买的测评会自动保存<span class="text bold">【我的测评】</span>列表。</div>
+            </div>
+          </div>
+
+        </div>
+
+        <div v-if="evaList.length > 0" style="margin-top: 10px;background: white;">
+          <div style="color: #333333; font-size: 16px;margin: 0 16px;padding-top: 16px;" class="bold">用户评价</div>
+          <div style="padding-left: 16px; padding-bottom: 16px;">
+            <span class="jibing" v-for="key in keywords">{{ key[0] }}&nbsp;&nbsp;{{ key[1] }}</span>
+          </div>
+          <hr class="full-line" />
+          <consultation-eva-item v-for="item in evaList" :key="item.pcomtId.value" :evaItem="item" ></consultation-eva-item>
+          <div class="buleLeb" style="text-align: center" @click="toEvaList"> 查看全部评价</div>
+        </div>
+
+      </div>
+
+      <mt-popup v-model="popupVisible" position="bottom" class="mint-popup-4">
+        <div style="background: white;padding: 20px;" v-if="!paySuccess">
+          <div style="line-height: 50px;">
+            <span style="color: #666666; font-size: 15px;">商品</span>
+            <span style="float: right; color: black; font-size: 16px; font-weight: bold;">{{ consultationItem.title }}</span>
+          </div>
+          <div class="full-line"></div>
+          <div style="font-weight: bold; font-size: 16px; color: #FF0000; line-height: 50px; float: right;">合计：{{ consultationPrice }}</div>
+          <button type="button" class="pay" @click="submitOrder">立即支付</button>
+        </div>
+        <div style="background: white;padding: 20px;" v-if="paySuccess">
+          <img class="img" :src="consultationPaySuccess">
+          <div style="font-size: 20px;font-weight: 500;color: black;text-align: center;margin-top: 68px;">支付成功</div>
+          <button type="button" class="test" @click="startTest">开始测试</button>
+        </div>
+
+      </mt-popup>
+
+    </div>
+</template>
+
+<script>
+    import { mapGetters, mapMutations } from 'vuex'
+    import imgMap from '../../../static/js/imgmap.js';
+    import ConsultationEvaItem from './ConsultationEvaItem.vue';
+    export default {
+        data() {
+            return {
+              pevalId: this.$route.query.pevalId,
+              consultationItem: {},
+              popupVisible: false,
+              porderId: '',
+              paySuccess: false,
+              pfavId: null,
+              evaList: [],
+              keywords: []
+            }
+        },
+
+        components: {
+          consultationEvaItem: ConsultationEvaItem
+        },
+
+        filters: {
+          lossValue(value) {
+            if(value) return value.value;
+          }
+        },
+
+        computed: {
+          ...mapGetters(['loginData', 'loginUrl']),
+          consultationPrice() {
+            if(!this.consultationItem.pevalId) return;
+            let ifPay = this.consultationItem.ifPay.value;
+            if(ifPay == '0') return '免费';
+            return '¥' + this.consultationItem.price.value;
+          },
+
+          consultationPriceOld() {
+            if(this.consultationItem.price1) return this.consultationItem.price1.value;
+            return '';
+          },
+
+          consultationWantImg() {
+            if(this.pfavId) return imgMap.consultationWanted;
+            return imgMap.consultationWant;
+          },
+
+          consultationImg() {
+            if(this.consultationItem.picWide) return this.consultationItem.picWide;
+            return imgMap.consultationBigImg;
+          },
+
+          consultationPaySuccess() {
+             return imgMap.consultationPaySuccess;
+          }
+
+        },
+
+        methods: {
+          ...mapMutations(['setRefreshOrder', 'setRefreshCollect']),
+          collect() {  //收藏
+            if(this.loginData.userObj) {  //已登录
+              let request = {};
+              let method = '';
+              if(this.pfavId) {  //取消收藏
+                 request = {pfavId: this.pfavId};
+                 method = 'favoriteDel';
+              } else {
+                 request = {pevalId: this.pevalId, userId: this.loginData.userObj.userId.value};
+                 method = 'favoriteAdd';
+              }
+              this.$store.dispatch(method, request).then(data => {
+                  if(data && data.pfavId) {
+                    this.pfavId = data.pfavId.value;
+                    this.$toast('操作成功，可在「我的」查看想测内容');
+                  } else {
+                    this.pfavId = null;
+                    this.$toast('取消想测成功');
+                  }
+                  this.setRefreshCollect(true);
+              }).catch(err => {
+                this.$toast(err.message);
+              })
+            } else {
+              window.location.href = this.loginUrl + "autoLogin&isConsultation=1";
+            }
+          },
+
+          showDialog(prepId, porderId) {
+            let isReport = (prepId != '0');
+            this.$messagebox({
+              cancelButtonText: '去支付',
+              confirmButtonText: isReport ? '查看报告' : '继续答题',
+              message: isReport ? '您已经购买过这道测试题，是否再次购买？' : '该测评您还有未完成的记录，是否继续答题？',
+              showCancelButton: true,
+              showCancelButton: true
+            }).then(action => {
+               if(action == 'cancel') {
+                 this.showBottom();
+               } else if(action == 'confirm') {
+                 if(isReport) {  //看报告
+                   this.goReport(prepId, porderId);
+                 } else {  //继续做题
+                   this.porderId = porderId;
+                   this.startTest();
+                 }
+               }
+            });
+          },
+
+          showBottom() {
+            this.popupVisible = !this.popupVisible;
+            this.paySuccess = false;
+          },
+
+          goReport(prepId, porderId) {
+            this.$router.push({
+              path: "consultationResult",
+              query: {
+                prepId: prepId,
+                porderId: porderId,
+                pevalId: this.pevalId
+              }
+            })
+          },
+
+          startBuy() {
+            if(this.loginData.userObj) {  //已登录
+              const request = {
+                pevalId: this.pevalId,
+                userId: this.loginData.userObj.userId.value
+              };
+              this.$store.dispatch("orderCheck", request).then(data => {
+                if(data) {
+                  let prepId = data.prepId.value;
+                  let porderId = data.porderId.value;
+                  if(prepId != '0' || porderId != '0') {  //有报告
+                    this.showDialog(prepId, porderId);
+                  } else {
+                    this.showBottom();
+                  }
+                } else {
+                   this.showBottom();
+                }
+              }).catch(error => {
+                this.$toast(error.message);
+              });
+            } else {
+              window.location.href = this.loginUrl + "autoLogin&isConsultation=1";
+            }
+          },
+
+          startTest() {  //开始测试
+            this.popupVisible = false;
+            this.$router.push({
+              path: "consultationTest",
+              query: {
+                pevalId: this.pevalId,
+                porderId: this.porderId,
+              }
+            });
+          },
+
+          submitOrder() {
+            if(!this.consultationItem.pevalId) return;
+            let ifPay = this.consultationItem.ifPay.value;
+            if(this.loginData.userObj) {  //已登录
+                if(!this.porderId) {  //订单不已存在，下订单
+                  this.$indicator.open();
+                  const request = {
+                    pevalId: this.pevalId,
+                    price: this.consultationItem.price.value,
+                    userId: this.loginData.userObj.userId.value,
+                    orgId: this.consultationItem.orgId.value
+                  };
+                  this.$store.dispatch("orderCreate", request).then(data => {
+                    this.porderId = data.porderId.value;
+                    if(ifPay == '0') {  //免费
+                      this.orderPaySuccess();
+                      this.$indicator.close();
+                    } else {
+                      this.wxPay();
+                    }
+                  }).catch(error => {
+                    this.$toast(error.message);
+                    this.$indicator.close();
+                  })
+                } else {
+                  if(ifPay == '0') {  //免费
+                    this.orderPaySuccess();
+                  } else {
+                    this.$indicator.open();
+                    this.wxPay();
+                  }
+                }
+            } else {
+              window.location.href = this.loginUrl + "autoLogin&isConsultation=1";
+            }
+          },
+
+          orderPaySuccess() {  //订单支付成功，刷新订单
+            this.paySuccess = true;
+            this.setRefreshOrder(true);
+          },
+
+          wxPay() {
+            let price = this.consultationItem.price.value;
+            let request = {busiId: this.porderId, busiType: 2000105, desp :"心理咨询", drId: 0, money: price, moneyRmb:price,
+              orgId: this.consultationItem.orgId.value, tradeMode :8101104, userId :this.loginData.userObj.userId.value};  //,'1007057917653852160'
+            this.$store.dispatch("userConsume", request).then((data) => {
+              //支付成功
+              let request = data.data;
+              if(request) {
+                request = eval('(' + request + ")");
+                this.invokeWx(request);
+              } else {
+                this.orderPaySuccess();
+              }
+            }).catch(e => {
+              this.$toast(e.message);
+            }).finally(() => {
+              this.$indicator.close();
+            });
+          },
+          onBridgeReady(request) {
+            let vm = this;
+            WeixinJSBridge.invoke('getBrandWCPayRequest', request, function(res){
+              if(res.err_msg == "get_brand_wcpay_request:ok"){
+                vm.orderPaySuccess();
+              } else {
+                vm.$toast("支付失败");
+              }
+            });
+          },
+
+          invokeWx(request) {
+            if (typeof WeixinJSBridge == "undefined"){
+              if(document.addEventListener ){
+                document.addEventListener('WeixinJSBridgeReady', this.onBridgeReady(request), false);
+              }else if (document.attachEvent){
+                document.attachEvent('WeixinJSBridgeReady', this.onBridgeReady(request));
+                document.attachEvent('onWeixinJSBridgeReady', this.onBridgeReady(request));
+              }
+            }else{
+              this.onBridgeReady(request);
+            }
+          },
+
+          commentListGet() {
+             const request = {
+               pageNum: 1,
+               pageSize: 2,
+               pevalId: this.pevalId
+             };
+             this.$store.dispatch("commentList", request).then(data => {
+                this.evaList = data.dataList;
+                this.keywords = data.keywords;
+             }).catch(err => {
+               this.$toast(err.message);
+             })
+
+          },
+
+          consultationGet() {  //
+            this.$store.dispatch("evalListQuery", {pevalId: this.pevalId, orgId: this.$store.getters.getOrgId}).then((data) => {
+                if(data.dataList && data.dataList.length > 0) {
+                  this.consultationItem = data.dataList[0];
+                  document.title = this.consultationItem.title;
+                }
+
+            }).catch(error => {
+              this.$toast(error.message);
+            })
+          },
+
+          toEvaList() {
+             this.$router.push({
+               path: "consultationEvaList",
+               query: this.$route.query
+             })
+          }
+
+        },
+
+        mounted() {
+          if(this.loginData.userObj) {
+            let request = {pevalId: this.pevalId, userId: this.loginData.userObj.userId.value};
+            this.$store.dispatch("favoriteCheck", request).then(data => {
+              if(data && data.pfavId) {
+                this.pfavId = data.pfavId.value;
+              } else {
+                this.pfavId = null;
+              }
+            }).catch(err => {
+              this.$toast(err.message);
+            })
+          }
+        },
+
+        created() {
+            this.consultationGet();
+            this.commentListGet();
+        }
+    }
+</script>
+
+<style scoped>
+
+  .head {
+    background: white;
+    padding: 16px 0;
+    text-align: center
+  }
+
+  .bottom {
+    background: white;
+    height: 70px;
+    position: fixed;
+    bottom: 0;
+  }
+
+  .wrap {
+    margin-bottom: 70px;
+  }
+
+  .title{
+    font-size: 20px;
+    color: #333333;
+  }
+
+  .bold {
+    font-weight: bold;
+  }
+
+  .price{
+    font-size: 15px;
+    color: red;
+  }
+
+  .priceOld{
+    padding-left: 10px;
+    font-size:15px;
+    font-weight:400;
+    color:#999999;
+    text-decoration: line-through;
+  }
+
+  .text{
+    font-size: 14px;
+    color: black;
+  }
+  .title1{
+    color: #333333;
+    font-size: 16px;
+    text-align: center;
+  }
+  .content{
+    font-size: 14px;
+    color: #333333;
+    font-weight:400;
+    padding: 10px 0;
+  }
+
+  .tip {
+    background-color: #F2F2F2;
+    padding: 16px 12px;
+  }
+
+  .text6{
+    font-size: 15px;
+    font-weight: 500;
+    color: #333333;
+    display: inline-block;
+    text-align: center;
+    margin-top: 25px;
+    padding-left: 8px;
+  }
+
+  .btn{
+    display: inline-block;
+    font-size:20px;
+    font-weight: 500;
+    color: floralwhite;
+    background-color: rgba(0,147,255,1);
+    height: 44px;
+    border-radius: 22px;
+    float: right;
+    margin-right: 20px;
+    margin-top: 13px;
+    text-align: center;
+    width: 60%;
+    line-height: 44px;
+  }
+
+  .pay {
+    font-size:20px;
+    font-weight: 500;
+    color: white;
+    background-color: rgba(0,147,255,1);
+    height: 44px;
+    border-radius: 22px;
+    margin-top: 23px;
+    width: 100%;
+    border-width: 0; /* 边框宽度 */
+    outline: none; /* 不显示轮廓线 */
+  }
+
+  .img{
+    width: 54px;
+    height: 54px;
+    position: absolute;
+    left: 0;
+    right: 0;
+    margin: 0 auto;
+  }
+
+  .test{
+    font-size:20px;
+    font-weight: 500;
+    color: floralwhite;
+    background-color: rgba(0,147,255,1);
+    height: 44px;
+    border-radius: 22px;
+    margin-top: 17px;
+    width: 60%;
+    margin-left: 20%;
+    border-width: 0; /* 边框宽度 */
+    outline: none; /* 不显示轮廓线 */
+  }
+
+  .buleLeb{
+    color: rgba(0,147,255,1);
+    font-size: 14px;
+    font-weight: 500;
+    padding: 10px 0;
+    background: white;
+  }
+
+  .jibing{
+    display: inline-block;
+    font-size: 14px;
+    padding: 0 9px;
+    text-align: center;
+    margin-right: 16px;
+    border: 1px solid #cccccc;
+    line-height: 30px;
+    color: #222222;
+    white-space:nowrap;
+    margin-top: 16px;
+  }
+
+</style>

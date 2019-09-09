@@ -1,0 +1,75 @@
+<template>
+  <div id="app">
+    <keep-alive :include="cacheName">
+      <router-view v-if="$route.meta.keepAlive"></router-view>
+    </keep-alive>
+    <router-view v-if="!$route.meta.keepAlive"></router-view>
+  </div>
+</template>
+
+<script>
+  import { mapGetters } from 'vuex'
+  export default {
+    computed: {
+      ...mapGetters(['cacheName'])
+    }
+  }
+</script>
+
+<style>
+
+
+  body {
+    background-color: #f7f7f7;
+    margin: 0;
+    font-size:0.14rem;
+    /*overflow-x: hidden;*/
+  }
+
+  .page-header-main {
+    margin-top: 40px;
+  }
+
+  .full-line {
+    background-color: #eee;
+    height: 1px;
+    border: 0;
+    margin: 0 16px;
+  }
+
+  .line {
+    background-color: #e6e6e6;
+    height: 1px;
+    margin: 0 16px 0 11px;
+    border: 0;
+  }
+
+  .fl{float: left;}
+  .fr{float: right;}
+
+  .mint-popup-4 {
+    width: 100%;
+  }
+
+  .toolbar {
+    background-color: white;
+  }
+
+  .toolbar-left {
+    float: left;
+    margin: 16px 0 0 16px;
+    color:#888
+  }
+  .toolbar-right {
+    float:right;
+    margin: 16px 16px 0 0;
+    color:#0093ff
+  }
+
+  .mint-tab-item-label {
+    color: inherit;
+    font-size: 14px;
+    line-height: 1
+  }
+
+</style>

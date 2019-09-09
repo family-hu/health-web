@@ -1,0 +1,48 @@
+<template>
+    <div>
+      <focus-hospital-item v-for="hospital in hospitalList" :key="hospital.orgId.value" :hospitalDetail="hospital" @click.native="toHospital(hospital)"></focus-hospital-item>
+    </div>
+</template>
+
+<script>
+    import FocusHospitalItem from './FocusHospitalItem.vue';
+    export default {
+        data() {
+           return {
+              hospitalList: []
+           }
+        },
+
+        components: {
+          focusHospitalItem: FocusHospitalItem
+        },
+
+        methods: {
+          toHospital(hospital) {
+            this.$router.push({path: "home", query:{orgId: hospital.orgId.value, focusEnter: true}});
+          },
+
+          requestHospitalList() {
+            let vm = this;
+            const request = {busiType:1000100103, favType:1014102}
+            this.$store.dispatch("myFavList", request).then((data) => {
+              if(data.orgList) {
+                for(let i = 0; i < data.orgList.length; i++) {
+                  vm.hospitalList.push(data.orgList[i]);
+                }
+              }
+            }).catch(error => {
+              this.$toast(error.message);
+            });
+          }
+        },
+
+        created() {
+           this.requestHospitalList();
+        }
+    }
+</script>
+
+<style scoped>
+
+</style>

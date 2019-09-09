@@ -1,0 +1,786 @@
+<template>
+    <!--<div>-->
+      <!--<app-header :title='drName'></app-header>-->
+      <div style="padding-bottom: 100px;">
+        <div id="messageList" class="npcTalklist">
+
+          <div class="npcTalkItem clearFix border-left">
+            <div class="npcTalkImg fl">
+              <img :src="docImg" alt="头像" width="50px" height="50px">
+            </div>
+            <div class="npcTalk fl">
+              <div class="npcTalkCon">您好，很高兴为您提供帮助，请先简单描述下您的病情。</div>
+            </div>
+          </div>
+
+          <message-item v-for="(message,index) in imMsgList" :key="index" :message="message" :friendHeadUrl="friendHeadUrl" :gender="gender"></message-item>
+
+        </div>
+
+        <div v-if="!canChat" style="height:100px;padding:2px; width: 100%; position: fixed;bottom: 0; background-color: #fff; border-top: 1px solid #000;" align="center" id="buydiv">
+          <p style="font-weight:400;color:rgba(102,102,102,1);font-size: 11px">您的沟通次数已用完，请选择以下方式继续咨询</p>
+          <div style="border-radius:14px; width: 50%" align="center" v-bind:style="{ background: onlineBg1 }" @click="orderPay">
+            <p style="font-size: 14px;color: white;">在线咨询</p>
+            <p style="font-size: 8px;color:rgba(255,255,255,1);">{{ priceValue }}元/{{ snapName }}</p>
+          </div>
+        </div>
+
+
+        <div v-if="canChat" class="footerTalk">
+          <div style="height:50px;">
+            <div class="serveritme" v-bind:style="{ background: onlineBg, 'border-color': borderColor }" @click="orderPay">在线咨询</div>
+            <div class="serveritme" v-if="false">服务包</div>
+            <div class="serveritme" v-if="false">在线预约</div>
+          </div>
+
+          <hr class="full-line">
+
+          <div class="center fl">
+            <input type="text" class="send_msg_text" id="send_msg_text">
+          </div>
+          <button class="right fr" @click="onSendMsg()" type="button">发送</button>
+        </div>
+
+      </div>
+
+    <!--</div>-->
+</template>
+
+<script>
+  import Header from '../Header.vue'
+  import { webim } from '../../assets/im/webim.js'
+  import { mapGetters } from 'vuex'
+  import imgMap from '../../../static/js/imgmap.js'
+  import MessageItem from './MessageItem.vue'
+    export default {
+      data() {
+        return {
+          drName: this.$route.query.drName,
+          selToID: this.$route.query.userId,
+          friendHeadUrl: this.$route.query.friendHeadUrl,
+          gender: this.$route.query.gender,
+          imMsgList:[],
+          selType: webim.SESSION_TYPE.C2C,
+          loginInfo: null,
+          selSess: null,
+          getPrePageC2CHistroyMsgInfoMap:{},
+          conversation: null,
+        }
+      },
+
+      components: {
+        appHeader: Header,
+        messageItem: MessageItem
+      },
+
+      computed: {
+        ...mapGetters(['loginData']),
+         onlineEnable() {
+           return this.conversation && this.conversation.onlineStatus && this.conversation.onlineStatus.value == "1";
+         },
+        onlineBg() {
+          if(this.onlineEnable) return 'rgba(0,147,255,0.1)';
+          return 'rgba(181,181,181,1)';
+        },
+        borderColor() {
+          if(this.onlineEnable) return 'rgba(127,201,255,1)';
+          return 'rgba(0,0,0,0)';
+        },
+
+        onlineBg1() {
+          if(this.onlineEnable) return 'rgba(0,147,255,1)';
+          return 'rgba(181,181,181,1)';
+        },
+        canChat() {
+           if(this.conversation) {
+              if(this.conversation.sysType.value == "1003104") return true;  //对方是用户
+              if(this.conversation.relId.value != '0') return true;  //有关系
+              if(this.conversation.isBusiUser.value == "1" && this.conversation.serving.value == "1") return true;  //在服务中的业务好友
+              if(this.conversation.chatTimes.value != '0') return true;  //有免费聊天次数
+           }
+           return false;
+        },
+        priceValue() {
+          if(this.conversation) {
+            if(this.conversation.price) {
+              return this.conversation.price.value;
+            }
+          }
+          return "9999";
+        },
+        snapName() {
+          if(this.conversation) {
+            return this.conversation.snapName;
+          }
+          return '';
+        },
+        docImg() {
+          if(this.friendHeadUrl) {
+            return this.friendHeadUrl;
+          } else {
+            let img = imgMap.docMale;
+            if(this.gender && this.gender == "0") {
+              img = imgMap.docFeMale;
+            }
+            return img;
+          }
+        }
+      },
+
+      methods: {
+        orderPay() {  //支付订单
+          if(this.onlineEnable) {
+            this.$router.push({path:"orderSubmitPay",query:{price: this.priceValue, snapId:this.conversation.snapId.value, orgId:this.conversation.orgId.value, drId:this.conversation.account}})
+          }
+        },
+
+
+        //IE9(含)以下浏览器用到的jsonp回调函数
+        jsonpCallback(rspData) {
+           webim.setJsonpLastRspData(rspData);
+        },
+
+        addMsg(msg, prepend) {
+          let fromAccount = msg.getFromAccount();
+          if (!fromAccount) {
+            return;
+          }
+
+          //获取消息子类型
+          //会话类型为群聊时，子类型为：webim.GROUP_MSG_SUB_TYPE
+          //会话类型为私聊时，子类型为：webim.C2C_MSG_SUB_TYPE
+          let subType = msg.getSubType();
+          switch (subType) {
+
+            case webim.GROUP_MSG_SUB_TYPE.COMMON: //普通消息
+              this.imMsgList.push(msg);
+              this.convertMsgtoHtml(msg);
+              break;
+          }
+          let messageList = document.getElementById("messageList");
+          // if(html) {
+          //   $('.npcTalklist').append(html);
+          // }
+
+          //消息列表
+          if (prepend) {
+            //300ms后,等待图片加载完，滚动条自动滚动到底部
+            messageList.insertBefore(html, messageList.firstChild);
+            if (messageList.scrollTop == 0) {
+              setTimeout(function() {
+                messageList.scrollTop = 0;
+              }, 300);
+            }
+          } else {
+            //300ms后,等待图片加载完，滚动条自动滚动到底部
+            setTimeout(function() {
+              messageList.scrollTop = messageList.scrollHeight;
+              console.log(messageList.scrollTop + "---" + messageList.scrollHeight);
+            }, 300);
+          }
+
+        },
+
+        onMsgNotify(newMsgList) {
+          var sess, newMsg;
+          //获取所有聊天会话
+          var sessMap = webim.MsgStore.sessMap();
+          for (var j in newMsgList) { //遍历新消息
+            newMsg = newMsgList[j];
+
+            if (!this.selToID) { //没有聊天对象
+              this.selToID = newMsg.getSession().id();
+              this.selType = newMsg.getSession().type();
+              this.selSess = newMsg.getSession();
+            }
+            if (newMsg.getSession().id() == this.selToID) { //为当前聊天对象的消息
+              //在聊天窗体中新增一条消息
+              //console.warn(newMsg);
+              this.addMsg(newMsg);
+            }
+          }
+          //消息已读上报，以及设置会话自动已读标记
+          // webim.setAutoRead(selSess, true, true);
+
+          for (var i in sessMap) {
+            sess = sessMap[i];
+            if (this.selToID != sess.id()) { //更新其他聊天对象的未读消息数
+              // updateSessDiv(sess.type(), sess.id(), sess.name(), sess.unread());  ////更新最近会话的未读消息数
+              console.debug(sess.id(), sess.unread());
+            }
+          }
+        },
+
+        onSendMsg() {
+          if (!this.selToID) {
+            $("#send_msg_text").val('');
+            return;
+          }
+          //获取消息内容
+          //var msgContent = document.getElementsByClassName("#send_msg_text").value;
+          var msgContent = $('#send_msg_text').val();
+          var msgLen = webim.Tool.getStrBytes(msgContent);
+
+          if (msgContent.length < 1) {
+            alert("发送的消息不能为空!");
+            $("#send_msg_text").val('');
+            return;
+          }
+          var maxLen, errInfo;
+          if (this.selType == webim.SESSION_TYPE.C2C) {
+            maxLen = webim.MSG_MAX_LENGTH.C2C;
+            errInfo = "消息长度超出限制(最多" + Math.round(maxLen / 3) + "汉字)";
+          } else {
+            maxLen = webim.MSG_MAX_LENGTH.GROUP;
+            errInfo = "消息长度超出限制(最多" + Math.round(maxLen / 3) + "汉字)";
+          }
+          if (msgLen > maxLen) {
+            alert(errInfo);
+            return;
+          }
+          //发消息处理
+          this.handleMsgSend(msgContent);
+        },
+
+        handleMsgSend(msgContent) {
+          if (!this.selSess) {
+            this.selSess = new webim.Session(this.selType, this.selToID, this.selToID, this.friendHeadUrl, Math.round(new Date().getTime() / 1000));
+          }
+          var isSend = true; //是否为自己发送
+          var seq = -1; //消息序列，-1表示sdk自动生成，用于去重
+          var random = Math.round(Math.random() * 4294967296); //消息随机数，用于去重
+          var msgTime = Math.round(new Date().getTime() / 1000); //消息时间戳
+          var subType; //消息子类型
+          if (this.selType == webim.SESSION_TYPE.C2C) {
+            subType = webim.C2C_MSG_SUB_TYPE.COMMON;
+          } else {
+            //webim.GROUP_MSG_SUB_TYPE.COMMON-普通消息,
+            //webim.GROUP_MSG_SUB_TYPE.LOVEMSG-点赞消息，优先级最低
+            //webim.GROUP_MSG_SUB_TYPE.TIP-提示消息(不支持发送，用于区分群消息子类型)，
+            //webim.GROUP_MSG_SUB_TYPE.REDPACKET-红包消息，优先级最高
+            subType = webim.GROUP_MSG_SUB_TYPE.COMMON;
+          }
+          var msg = new webim.Msg(this.selSess, isSend, seq, random, msgTime, this.loginInfo.identifier, subType, this.loginInfo.identifierNick);
+
+          var text_obj, face_obj, tmsg, emotionIndex, emotion, restMsgIndex;
+          //解析文本和表情
+          var expr = /\[[^[\]]{1,3}\]/mg;
+          var emotions = msgContent.match(expr);
+          if (!emotions || emotions.length < 1) {
+            text_obj = new webim.Msg.Elem.Text(msgContent);
+            msg.addText(text_obj);
+          } else {
+            for (var i = 0; i < emotions.length; i++) {
+              tmsg = msgContent.substring(0, msgContent.indexOf(emotions[i]));
+              if (tmsg) {
+                text_obj = new webim.Msg.Elem.Text(tmsg);
+                msg.addText(text_obj);
+              }
+              emotionIndex = webim.EmotionDataIndexs[emotions[i]];
+              emotion = webim.Emotions[emotionIndex];
+
+              if (emotion) {
+                face_obj = new webim.Msg.Elem.Face(emotionIndex, emotions[i]);
+                msg.addFace(face_obj);
+              } else {
+                text_obj = new webim.Msg.Elem.Text(emotions[i]);
+                msg.addText(text_obj);
+              }
+              restMsgIndex = msgContent.indexOf(emotions[i]) + emotions[i].length;
+              msgContent = msgContent.substring(restMsgIndex);
+            }
+            if (msgContent) {
+              text_obj = new webim.Msg.Elem.Text(msgContent);
+              msg.addText(text_obj);
+            }
+          }
+
+          msg.PushInfoBoolean = true; //是否开启离线推送push同步
+          msg.sending = 1;
+          msg.originContent = msgContent;
+          this.addMsg(msg);
+          $("#send_msg_text").val('');
+          let vm = this;
+          webim.sendMsg(msg, function(resp) {
+            //发送成功，把sending清理
+            $("#id_" + msg.random).find(".spinner").remove();
+            webim.Tool.setCookie("tmpmsg_" + vm.selToID, '', 0);
+          }, function(err) {
+            alert(err.ErrorInfo);
+            //提示重发
+            this.showReSend(msg);
+          });
+        },
+        showReSend(msg) {
+          //resend a dom
+          var resendBtn = $('<a href="javascript:;">重发</a>');
+          //绑定重发事件
+          resendBtn.click(function() {
+            //删除当前的dom
+            $("#id_" + msg.random).remove();
+            //发消息处理
+            this.handleMsgSend(msg.originContent);
+          });
+          $("#id_" + msg.random).find(".spinner").empty().append(resendBtn);
+        },
+
+        imLogin() {
+          this.loginInfo = {
+            'sdkAppID': 1400034465, //用户所属应用id,必填
+            'identifier': this.$store.getters.loginData.userObj.userId.value, //当前用户ID,必须是否字符串类型，必填
+            'accountType': 12230, //用户所属应用帐号类型，必填
+            'userSig': this.$store.getters.loginData.imUserSign
+          };
+          let onConnNotify = function (resp) {
+            var info;
+            switch (resp.ErrorCode) {
+              case webim.CONNECTION_STATUS.ON:
+                webim.Log.warn('建立连接成功: ' + resp.ErrorInfo);
+                break;
+              case webim.CONNECTION_STATUS.OFF:
+                info = '连接已断开，无法收到新消息，请检查下你的网络是否正常: ' + resp.ErrorInfo;
+                // alert(info);
+                webim.Log.warn(info);
+                break;
+              case webim.CONNECTION_STATUS.RECONNECT:
+                info = '连接状态恢复正常: ' + resp.ErrorInfo;
+                // alert(info);
+                webim.Log.warn(info);
+                break;
+              default:
+                webim.Log.error('未知连接状态: =' + resp.ErrorInfo);
+                break;
+            }
+          };
+
+          //监听事件
+          let listeners = {
+            "onConnNotify": onConnNotify, //监听连接状态回调变化事件,必填
+            "jsonpCallback": this.jsonpCallback, //IE9(含)以下浏览器用到的jsonp回调函数，
+            "onMsgNotify": this.onMsgNotify, //监听新消息(私聊，普通群(非直播聊天室)消息，全员推送消息)事件，必填
+            "onLongPullingNotify": function (data) {
+              console.debug('onLongPullingNotify', data)
+            }
+          };
+
+          //初始化时，其他对象，选填
+          let options = {
+            'isAccessFormalEnv': true, //是否访问正式环境，默认访问正式，选填
+            'isLogOn': false //是否开启控制台打印日志,默认开启，选填
+          };
+
+          let vm = this;
+          webim.login(
+            this.loginInfo, listeners, options,
+            function(resp) {
+              vm.loginInfo.identifierNick = resp.identifierNick; //设置当前用户昵称
+              vm.loginInfo.headurl = resp.headurl; //设置当前用户头像
+
+              vm.getLastC2CHistoryMsgs(function (msgList) {
+                vm.getHistoryMsgCallback(msgList);
+              }, function (err) {
+                alert(err.ErrorInfo);
+              });
+            },
+            function(err) {
+              alert(err.ErrorInfo);
+            }
+          );
+        },
+        getLastC2CHistoryMsgs(cbOk, cbError) {
+          if (this.selType == webim.SESSION_TYPE.GROUP) {
+            alert('当前的聊天类型为群聊天，不能进行拉取好友历史消息操作');
+            return;
+          }
+          if (!this.selToID || this.selToID == '@TIM#SYSTEM') {
+            alert('当前的聊天id非法，selToID=' + selToID);
+            return;
+          }
+          var lastMsgTime = 0; //第一次拉取好友历史消息时，必须传0
+          var msgKey = '';
+          var options = {
+            'Peer_Account': this.selToID, //好友帐号
+            'MaxCnt': 15, //拉取消息条数
+            'LastMsgTime': lastMsgTime, //最近的消息时间，即从这个时间点向前拉取历史消息
+            'MsgKey': msgKey
+          };
+          this.selSess = null;
+          webim.MsgStore.delSessByTypeId(this.selType, this.selToID);
+
+          let vm = this;
+          webim.getC2CHistoryMsgs(
+            options,
+            function(resp) {
+              var complete = resp.Complete; //是否还有历史消息可以拉取，1-表示没有，0-表示有
+
+              if (resp.MsgList.length == 0) {
+                webim.Log.warn("没有历史消息了:data=" + JSON.stringify(options));
+                return;
+              }
+              vm.getPrePageC2CHistroyMsgInfoMap[vm.selToID] = { //保留服务器返回的最近消息时间和消息Key,用于下次向前拉取历史消息
+                'LastMsgTime': resp.LastMsgTime,
+                'MsgKey': resp.MsgKey
+              };
+              if (cbOk)
+                cbOk(resp.MsgList);
+            },
+            cbError
+          );
+        },
+        getHistoryMsgCallback(msgList, prepage) {
+          var msg;
+          prepage = prepage || false;
+
+          //如果是加载前几页的消息，消息体需要prepend，所以先倒排一下
+          if (prepage) {
+            msgList.reverse();
+          }
+
+          for (var j in msgList) { //遍历新消息
+            msg = msgList[j];
+            if (msg.getSession().id() == this.selToID) { //为当前聊天对象的消息
+              this.selSess = msg.getSession();
+              //在聊天窗体中新增一条消息
+              this.addMsg(msg, prepage);
+            }
+          }
+          //消息已读上报，并将当前会话的消息设置成自动已读
+          webim.setAutoRead(this.selSess, true, true);
+        },
+
+        convertMsgtoHtml(msg) {
+          var elems, elem, type, content;
+          elems = msg.getElems(); //获取消息包含的元素数组
+          var count = elems.length;
+          for (var i = 0; i < count; i++) {
+            elem = elems[i];
+            type = elem.getType(); //获取元素类型
+            content = elem.getContent(); //获取元素对象
+            switch (type) {
+              case webim.MSG_ELEMENT_TYPE.CUSTOM:
+                 this.convertCustomMsgToHtml(content, msg.getTime());
+                break;
+
+              default:
+                webim.Log.error('未知消息元素类型: elemType=' + type);
+                break;
+            }
+          }
+        },
+
+        convertCustomMsgToHtml(content, time) {
+          let data = content.getData(); //自定义数据
+          data = JSON.parse(data);
+          if(data.userAction == 301 || data.userAction == 300) {
+            let timestamp = time * 1000;
+            let current = new Date().getTime();
+            let isBusiUser = {};
+            let serving = {};
+            let chatTimes = {};
+            if(current - timestamp <= 2 * 60 * 1000) {  //2分钟之内的消息让他们可以聊
+                if(data.userAction == 301) {
+                  isBusiUser.value = "0";
+                  serving.value = "0";
+                  chatTimes.value = "0";
+                  this.$set(this.conversation, 'isBusiUser', isBusiUser);
+                  this.$set(this.conversation, 'serving', serving);
+                  this.$set(this.conversation, 'chatTimes', chatTimes);
+                }  else if(data.userAction == 300) {
+                  if(this.conversation) {
+                    isBusiUser.value = "1";
+                    serving.value = "1";
+                    this.$set(this.conversation, 'isBusiUser', isBusiUser);
+                    this.$set(this.conversation, 'serving', serving);
+                    console.log("修改为可以聊");
+                  }
+                }
+            }
+          }
+        },
+        conversationDetail() {
+          let request = {"accounts":[this.selToID],"opType":0};
+          let vm = this;
+          this.$store.dispatch("imConversationList", request).then((dataList) => {
+              if(dataList && dataList.length > 0) {
+                vm.conversation = dataList[0];
+              }
+          }).catch(error => {
+            this.$toast(error.message);
+          });
+        }
+      },
+
+      created() {
+        this.imLogin();
+      },
+
+      mounted() {
+        document.title = this.drName;
+        let messageList = document.getElementById("messageList");
+        messageList.style.height = (window.innerHeight - 100) + "px";
+
+        this.conversationDetail();
+        $("#messageList").bind('click','.npcTalklist',function(event){
+          let audio= $(event.target).children('audio')[0]|| $(event.target).siblings('audio')[0];
+          if(audio){
+            if(audio.paused){
+              $('audio').each(function(idx,ele){
+                ele.pause();
+              });
+              audio.play();// 这个就是播放
+            }else {
+              audio.pause();
+            }
+          }
+        });
+      }
+    }
+</script>
+
+<style>
+  .clearFix:after{content: '';height: 0;display: block;visibility: hidden;clear: both;}
+  .fl{float: left;}
+  .fr{float: right;}
+
+  .tip {
+    font-size:13px;
+    color: #666666;
+    text-align:center;
+    width:70%;
+    word-break:break-all;
+    padding:5px 15px 5px 15px;
+    text-align: center;
+    background:rgba(230,230,230,1);
+    border-radius:6px;
+    margin: 10px auto;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    text-align: center; /*让div内部文字居中*/
+  }
+
+  .npcTalklist{
+    background-color: #F7F7F7;
+    box-sizing: border-box;
+    padding-top:10px;
+    /*height: 636px;!*calc(100% - 100px);*!*/
+    overflow-y:auto;
+    width: 100%;
+  }
+  .npcTalkItem{
+    width: 100%;
+    box-sizing: border-box;
+    padding: .1rem .2rem .05rem;
+  }
+  /*QQ对话*/
+  .npcTalk{
+
+  }
+  .npcTalk .npcTalkCon {
+    max-width: 2.2rem;
+    font-size: .15rem;
+    color:white;
+    background-color: #fff;
+    border-radius: .05rem;
+    word-wrap:break-word;
+    position: relative;
+    padding: .1rem;
+    text-align: justify;
+    color:black;
+  }
+
+
+  .npcTalkImg img{
+    width: .5rem;
+    height: .5rem;
+    border-radius: 50%;
+  }
+  .npcTalk .npcTalkCon::after{
+    content: '';
+    width: 0;
+    height: 0;
+    border-width:11px;
+    border-style: solid;
+    border-color: transparent;
+    position: absolute;
+    top: 16px;
+  }
+  .border-left .npcTalk{
+    float: left;
+  }
+  .border-right .npcTalk{
+    float: right;
+  }
+  .npcTalk .npcTalkCon i {
+    display: block;
+    width: .2rem;
+    height: .2rem;
+  }
+  .npcTalk.fl .npcTalkCon i{
+    float: left;
+    margin-right: .3rem;
+    background: url("/static/img/lyz.png") no-repeat center;
+    background-size: .3rem .3rem;
+  }
+  .npcTalk.fr .npcTalkCon i{
+    float: right;
+    margin-left: .3rem;
+    background: url("/static/img/lyy.png") no-repeat center -1px;
+    background-size: .3rem .3rem;
+  }
+  .border-left .npcTalkImg img{
+    margin-right: .2rem;
+  }
+  .border-right .npcTalkImg img{
+    margin-left: .2rem;
+  }
+  .border-left .npcTalk .npcTalkCon::after {
+    border-right-color: #fff;
+    left: -20px;
+  }
+  .border-right .npcTalk .npcTalkCon::after {
+    border-left-color: #fff;
+    right: -20px;
+  }
+
+  .npcTalk .userTalkCon {
+    max-width: 2.2rem;
+    font-size: .15rem;
+    color:white;
+    word-wrap:break-word;
+    background-color: #0093FF;
+    border-radius: .05rem;
+    position: relative;
+    padding: .1rem;
+    text-align: justify;
+    color:white;
+  }
+
+  .npcTalk .userTalkCon::after{
+    content: '';
+    width: 0;
+    height: 0;
+    border-width:11px;
+    border-style: solid;
+    border-color: transparent;
+    position: absolute;
+    top: 16px;
+  }
+
+  .npcTalk .userTalkCon i {
+    display: block;
+    width: .2rem;
+    height: .2rem;
+  }
+  .npcTalk.fl .userTalkCon i{
+    float: left;
+    margin-right: .3rem;
+    background: url("/static/img/lyz.png") no-repeat center;
+    background-size: .3rem .3rem;
+  }
+  .npcTalk.fr .userTalkCon i{
+    float: right;
+    margin-left: .3rem;
+    background: url("/static/img/lyy.png") no-repeat center -1px;
+    background-size: .3rem .3rem;
+  }
+  .border-left .npcTalk .userTalkCon::after {
+    border-right-color: #0093FF;
+    left: -20px;
+  }
+  .border-right .npcTalk .userTalkCon::after {
+    border-left-color: #0093FF;
+    right: -20px;
+  }
+
+  .send_msg_text {
+    margin:8px;
+  }
+
+  .serveritme{
+    font-size:14px;
+    font-weight:400;
+    color:rgba(34,34,34,1);
+    line-height:13px;
+    width:auto;
+    margin:8px;
+    float:left;
+    padding:8px;
+    text-align: center;
+    background:rgba(0,147,255,0.1);
+    border-radius:13px;
+    border:1px solid rgba(127,201,255,1);
+  }
+
+  .footerTalk{
+    height: 100px;
+    width: 100%;
+    position: fixed;
+    bottom: 0;
+    background-color:white;
+  }
+
+  .footerTalk.audio {
+    display: none;
+  }
+  .footerTalk .center{
+    width: 80%;
+    height:32px;
+  }
+  .footerTalk.audio .center{
+    text-align: center;
+    line-height: .5rem;
+  }
+  .footerTalk .center input{
+    width: 100%;
+    height: 100%;
+    border: 0;
+    background:rgba(247,247,247,1);
+    border-radius:2px;
+  }
+  .footerTalk .right{
+    margin-right: 8px;
+    margin-top:8px;
+    text-align: center;
+    box-sizing: border-box;
+    border: 0px solid transparent;
+    height: 32px; /* 高度 */
+    background:rgba(0,147,255,1);
+    border-radius:5px;
+    cursor: pointer; /* 鼠标移入按钮范围时出现手势 */
+    outline: none; /* 不显示轮廓线 */
+    color: white; /* 字体颜色 */
+    font-size: 14px; /* 字体大小 */
+  }
+
+  @media (max-width: 374px) {
+    html{font-size: 85.34px;}
+    body{font-size:0.12rem;}
+  }
+  @media (min-width : 320px){
+    html{font-size: 85.34px;}
+  }
+  @media (min-width: 360px) {
+    html{font-size: 96px;}
+  }
+  @media (min-width : 375px){
+    html{font-size:100px;}
+  }
+  @media (min-width : 384px){
+    html{font-size:102.5px;}
+  }
+  @media (min-width : 411px){
+    html{font-size: 110px;}
+  }
+  @media (min-width: 600px) {
+    html{font-size: 160.4px;}
+  }
+  @media (min-width : 768px){
+    html{font-size: 205.4px;}
+  }
+  @media (min-width : 800px){
+    html{font-size: 213px;}
+  }
+
+</style>

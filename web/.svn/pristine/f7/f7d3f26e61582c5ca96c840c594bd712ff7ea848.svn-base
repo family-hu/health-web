@@ -1,0 +1,206 @@
+<template>
+  <div style="background: white;margin: 0 15px;">
+    <div style="padding: 12px 16px;">
+      <span class="titlecs">{{ orderItem.orgNames }}</span>
+      <span class="state">{{ typeName }}</span>
+    </div>
+
+    <hr style="margin: 0px 16px;" class="full-line" size="1 ">
+
+    <div style="padding: 12px 16px;height: 80px; position: relative;">
+      <img width="80px" height="80px" :src="servImgUrl" style="float: left">
+
+      <div style="margin-left: 96px; position: absolute;top: 50%; transform: translateY(-50%)">
+        <div class="namecs singleLine">{{ orderItem.servName }}</div>
+        <div class="titlecs singleLine" style="margin-top: 10px;">服务人: {{ serverUser }}</div>
+        <div class="titlecs singleLine" style="margin-top: 10px;">就诊人: {{ orderItem.sickName }}</div>
+      </div>
+
+    </div>
+
+    <div class="money">服务包：<strong>¥{{ orderItem.price }}</strong></div>
+
+    <div style="display: inline-block;padding-top: 10px;padding-bottom: 10px;width: 100%">
+      <button type="button" class="btn1" v-if="isShowContact" @click.stop="contact">联系医生</button>
+      <button type="button" class="btn1" v-if="isShowCancel" @click.stop="cancelOrder">取消订单</button>
+      <button type="button" class="btn1" v-if="isShowPay" @click.stop="goPay">去支付</button>
+    </div>
+
+    <div style="height: 10px; background: #f7f7f7"></div>
+  </div>
+</template>
+
+<script>
+  import imgMap from '../../../static/js/imgmap.js';
+  import * as types from '../../constant/ConstantConfig.js';
+    export default {
+      props: ['orderItem'],
+      computed: {
+        servImgUrl() {
+          if (this.orderItem.servImgUrl) return this.orderItem.servImgUrl;
+          if (this.orderItem.servType.value == types.PACK_PERSON) {
+            return imgMap.packPerson;
+          } else if (this.orderItem.servType.value == types.PACK_TEAM) {
+            return imgMap.packTeam;
+          }
+          return imgMap.packDept;
+        },
+
+        typeName() {
+          let status = this.orderItem.status.value;
+          let isEnd = this.orderItem.isEnd.value;
+          if(status == types.ORDER_COMPLETE_UNCOMMENT || status == types.ORDER_COMPLETE_COMMENT) {
+            return "已完成";
+          }
+          if(isEnd == "0") {
+            if (status == types.ORDER_UNPAID) return "未付款";
+            if (status == types.ORDER_UNCONFIRM) return "待确认";
+            if (status == types.ORDER_ADVICING) return "服务中";
+          } else {
+            return "已取消";
+          }
+        },
+
+        isShowPay() {
+          let status = this.orderItem.status.value;
+          let isEnd = this.orderItem.isEnd.value;
+          if(isEnd == "0" && status == types.ORDER_UNPAID) return true;
+          return false;
+        },
+
+        isShowCancel() {
+          let status = this.orderItem.status.value;
+          let isEnd = this.orderItem.isEnd.value;
+          if(isEnd == "0" && status == types.ORDER_UNCONFIRM) return true;
+          return false;
+        },
+
+        isShowContact() {
+          let status = this.orderItem.status.value;
+          let isEnd = this.orderItem.isEnd.value;
+          if(isEnd == "0" && status == types.ORDER_ADVICING) return true;
+          return false;
+        },
+
+        deptName() {
+          if (this.orderItem.department && this.orderItem.department.value == types.COUNTRY_ALL_DEPART) {  //乡村全科
+            if (this.orderItem.deptDesp) {
+              return this.orderItem.deptDesp;
+            } else {
+              if (this.orderItem.departmentName) {
+                return this.orderItem.departmentName;
+              }
+            }
+          } else {
+            if (this.orderItem.departmentName) {
+              return this.orderItem.departmentName;
+            }
+          }
+          return '';
+        },
+        serverUser() {
+          let doctor = this.orderItem.acceptUserObj;
+          if(doctor) {
+            let strDoctor = doctor.userName;
+            if (doctor.department && doctor.department.value == types.COUNTRY_ALL_DEPART) {  //乡村全科
+              if (doctor.deptDesp) {
+                strDoctor += doctor.deptDesp;
+              } else {
+                if (doctor.departmentName) {
+                  strDoctor += doctor.departmentName;
+                }
+              }
+            } else {
+              if (doctor.departmentName) {
+                strDoctor += doctor.departmentName;
+              }
+            }
+            if(doctor.titlesName) {
+              strDoctor += doctor.titlesName;
+            }
+            return strDoctor;
+          }
+       }
+      },
+
+      methods: {
+        goPay() {
+          this.$router.push({
+            path: "serviceSubmitPay",
+            query:{
+              busiId: this.orderItem.orderId.value,
+              price: this.orderItem.price,
+              orgId: this.orderItem.orgId.value
+            }
+          })
+        },
+
+        //取消订单
+        cancelOrder() {
+          let request = {orderId: this.orderItem.orderId.value, status: -1};
+          this.$emit("cancelOrder", request);
+        },
+
+        contact() {
+          let doctor = this.orderItem.acceptUserObj;
+          if(!doctor) return;
+          this.$router.push({
+            path: "chat",
+            query: {userId: doctor.userId.value, drName: doctor.userName, friendHeadUrl: doctor.photoUrl, gender: doctor.gender.value}
+          })
+        }
+
+      }
+
+    }
+</script>
+
+<style scoped>
+  .namecs{
+    font-size:18px;
+    font-weight:bold;
+    color:#222222;
+  }
+
+  .singleLine {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: -webkit-box;
+    -webkit-line-clamp: 1;
+    -webkit-box-orient: vertical;
+  }
+
+  .titlecs{
+    font-size:15px;
+    font-weight:normal;
+    color:#222222;
+  }
+
+  .money{
+    font-size:15px;
+    font-weight:500;
+    color: #222222;
+    margin-right: 16px;
+    float: right;
+  }
+
+  .btn1{
+    border-radius: 4px;
+    text-align: center;
+    font-size:12px;
+    font-weight: 400;
+    color: rgba(0,147,255,1);
+    border: 1px solid rgba(0,147,255,1);
+    background-color:white;
+    height: 29px;
+    float: right;
+    margin-right: 13px;
+  }
+
+  .state{
+    font-size:15px;
+    font-weight:bold;
+    color:#FF4343;
+    float: right;
+  }
+</style>

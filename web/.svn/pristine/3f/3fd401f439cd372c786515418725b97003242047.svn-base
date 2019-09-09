@@ -1,0 +1,47 @@
+<template>
+  <div>
+    <mt-navbar v-model="selected" :fixed="true">
+      <mt-tab-item id="1">我的医生</mt-tab-item>
+      <mt-tab-item id="2">我的咨询</mt-tab-item>
+      <mt-tab-item id="3">我的报到</mt-tab-item>
+    </mt-navbar>
+
+    <mt-tab-container v-model="selected" style="margin-top: 56px;">
+
+      <mt-tab-container-item id="1">
+        <focus-doctor-list></focus-doctor-list>
+      </mt-tab-container-item>
+
+      <mt-tab-container-item id="2">
+        <conversation-list></conversation-list>
+      </mt-tab-container-item>
+
+      <mt-tab-container-item id="3">
+        <report-list></report-list>
+      </mt-tab-container-item>
+
+    </mt-tab-container>
+  </div>
+</template>
+
+<script>
+  import FocusDoctorList from './FocusDoctorList.vue';
+  import ConversationList from '../chat/ConversationList.vue';
+  import ReportList from '../user/ReportList.vue';
+  export default {
+    data() {
+      return {
+        selected: "1",
+      }
+    },
+    components: {
+      focusDoctorList: FocusDoctorList,
+      conversationList: ConversationList,
+      reportList: ReportList
+    }
+  }
+</script>
+
+<style scoped>
+
+</style>

@@ -1,0 +1,105 @@
+<template>
+  <div id="app">
+    <keep-alive :include="cacheName">
+      <router-view v-if="$route.meta.keepAlive"></router-view>
+    </keep-alive>
+    <router-view v-if="!$route.meta.keepAlive"></router-view>
+  </div>
+</template>
+
+<script>
+  import { mapGetters } from 'vuex'
+  export default {
+    computed: {
+      ...mapGetters(['cacheName'])
+    }
+  }
+</script>
+
+<style>
+  ul,
+  li,p,h3 {
+    padding: 0;
+    list-style: none;
+    margin: 0;
+  }
+  a{
+    text-decoration: none;
+    color: #222;
+    transition: all 0.3s linear 0s;
+  }
+
+  body {
+    background-color: #f7f7f7;
+    margin: 0;
+    font-size:0.14rem;
+    font-weight: 400;
+    /*overflow-x: hidden;*/
+  }
+
+  .page-header-main {
+    margin-top: 40px;
+  }
+  .flex-b{
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .full-line {
+    background-color: #eee;
+    height: 1px;
+    border: 0;
+    margin: 0 16px;
+  }
+
+  .line-m {
+    background-color: #eee;
+    height: 1px;
+    border: 0;
+    margin: 10px 16px;
+  }
+  .line-s {
+    background-color: rgba(216, 216, 216, .6);
+    height: 1px;
+    border: 0;
+    margin-top: 16px;
+  }
+
+  .line {
+    background-color: #e6e6e6;
+    height: 1px;
+    margin: 0 16px 0 11px;
+    border: 0;
+  }
+
+  .fl{float: left;}
+  .fr{float: right;}
+
+  .mint-popup-4 {
+    width: 100%;
+  }
+
+  .toolbar {
+    background-color: white;
+  }
+
+  .toolbar-left {
+    float: left;
+    margin: 16px 0 0 16px;
+    color:#888
+  }
+  .toolbar-right {
+    float:right;
+    margin: 16px 16px 0 0;
+    color:#0093ff
+  }
+
+  .mint-tab-item-label {
+    color: inherit;
+    font-size: 14px;
+    line-height: 1
+  }
+  .mint-tabbar.is-fixed{
+    z-index: 9999;
+  }
+</style>

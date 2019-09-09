@@ -1,0 +1,62 @@
+export const SUFFIX = "eHealth!";
+
+export const LOGIN_TYPE_ACCOUNT = 1;  //帐号密码登录
+export const LOGIN_TYPE_MSG = 2;   //短信登录
+export const LOGIN_TYPE_AUTO = 3;    //userId + IMSI自动登录
+export const LOGIN_TYPE_CODE = 4;   //code登录
+export const LOGIN_WECHAT = 5;
+
+export const SYS_TYPE_DOC = 1003105;  //医生端
+export const SYS_TYPE_USER = 1003104;  //用户端
+
+export const APP_VER = "1.0";
+export const APP_TYPE_USER = "1007100";
+export const APP_TYPE_DOCTOR = "1007110";
+export const KEY = "eHealth20170424On2017424";
+
+export const TYPE_PHONE_LOGIN = 1000100102;  //绑定帐号验证码
+export const PHONE_CODE_BUSID = 1000100;
+
+export const CODE_OK = 1;
+
+export const DICT_NATION = 4003;
+export const DICT_RELATION = 4002;
+
+export const USER_TYPE_CUSTOM = 100;
+
+export const MALE = '1';
+export const FEMALE = '0';
+
+export const COUNTRY_ALL_DEPART = "1005144101";
+
+export const PATH_FILTERS = ['/featuresDepartment', '/login', '/chat', "/ConsultationMain", "/mine", "/userDetail", "/serviceList", "/serviceDetail", "/newsList", "/newsDetail", "/doctorList", "/doctorOneList", "/doctorConsultation", "/doctorDetail", "/evaList", "/doctorAppoint", "/appointSubmit", "/appointOrderDetail", "/login", "/home", "/documentDetail", "/orderDetail", "/consultation", "/consultationDetail"];
+export const URL_FILTERS = ["servInfoList.mo", "servInfoGet.mo", "newsList.mo", "doctorList.mo",  "evaList.mo", "userLogin.mo", "subscribeDocInfo.mo", "newDocList.mo", "subscribeRecordsQuery.mo", "userOderInfo.mo", "userInfoGet.mo"];
+//"expertDetailGet.mo",
+
+//服务包类型
+export const PACK_PERSON = "2009101";
+export const PACK_TEAM = "2009102";
+
+export const ONLINE_SERVICE = 2000104;
+
+export const ORDER_COMPLETE_UNCOMMENT = "4";
+export const ORDER_COMPLETE_COMMENT = "5";
+export const ORDER_UNPAID = "1";
+export const ORDER_UNCONFIRM = "2";
+export const ORDER_ADVICING = "3";
+
+
+export const NEWS_SOURCE_HEALTH = "1015101";
+export const NEWS_SOURCE_COMPANY = "1015102";
+export const REC_NEWS_LIST_IMAGE = "1004100201";  //资讯列表图片
+
+export const NEWS_DETAIL = "http://smanager.sinoylb.com/m/sharenews.aspx?newsid=";
+
+export const STORE_URL = "http://a.app.qq.com/o/simple.jsp?pkgname=com.isat.ehealth";
+export const HOME_URL = "http://www.sinoylb.com/";
+
+export const ACCOUNT_TYPE_PHONE = '1010102';  //手机帐号
+
+export const PERREGIST_EVALUATE = "1000111101";
+export const PER_DRAW = "1000111102";
+export const PERREGIST_DRAW = "1000111";//诊后报道画像

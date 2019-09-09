@@ -1,0 +1,137 @@
+<template>
+
+    <div>
+      <div class="bgm">  <!--:style="{background: 'url(' + mineBg + ')'} " -->
+        <img :src="mineBg" alt="" style="position: absolute; left: 0;" width="100%">
+        <img class="photo" :src="userImg">
+        <p class="wlab">{{ userName }}</p>
+      </div>
+
+      <div class="cell" style="margin-top: 10px" @click="goDetail">
+        <span style="font-size:14px; font-weight: bold;">个人信息</span>
+        <img class="imgR" :src="arrowImg">
+      </div>
+
+      <hr class="full-line" style="margin-left: 16px;" align= center size="0.5">
+
+      <div class="cell" @click="goOrder">
+        <span style="font-size:14px; font-weight: bold; ">我的订单</span>
+        <img class="imgR" :src="arrowImg">
+      </div>
+
+      <div class="cell" style="margin-top: 10px" @click="goHome">
+        <span style="font-size:14px; font-weight: bold; ">关于我们</span>
+        <img class="imgR" :src="arrowImg">
+
+      </div>
+      <hr class="full-line" style="margin-left: 16px;" align= center size="0.5">
+
+      <div class="cell" @click="goDownload">
+        <span style="font-size:14px; font-weight: bold;">APP下载</span>
+        <img class="imgR" :src="arrowImg">
+      </div>
+
+    </div>
+</template>
+
+<script>
+  import { mapGetters } from 'vuex';
+  import * as types from '../../constant/ConstantConfig.js';
+  import imgMap from '../../../static/js/imgmap.js';
+    export default {
+        props: ['orgId'],
+
+        computed: {
+          ...mapGetters(['loginData']),
+          mineBg() {
+            return imgMap.mineBg;
+          },
+          userImg() {
+            let imgUrl = imgMap.defaultAva;
+            const userInfo = this.loginData.userObj;
+            if(userInfo && userInfo.photoUrl) {
+              imgUrl = userInfo.photoUrl;
+            }
+            return imgUrl;
+          },
+          userName() {
+            const userInfo = this.loginData.userObj;
+            if(userInfo) {
+                if(userInfo.nickName) return userInfo.nickName;
+                if(userInfo.userName) return userInfo.userName;
+            }
+            return '';
+          },
+          arrowImg() {
+            return imgMap.arrowRight;
+          }
+        },
+
+         methods: {
+           goOrder() {
+             this.$router.push({path: "order", query: {orgId: this.orgId}});
+           },
+           goDetail() {
+             this.$router.push("/userDetail");
+           },
+           goDownload() {
+             window.location.href = types.STORE_URL;
+           },
+           goHome() {
+             window.location.href = types.HOME_URL;
+           }
+         },
+
+      created() {
+        const userInfo = this.loginData.userObj;
+        if(userInfo) {
+          const request = {userId: userInfo.userId.value };
+          this.$store.dispatch("userInfoGet", request).catch(err => {
+            this.$store.commit("clearUser");
+            this.$store.commit("clearCache");
+          });
+        }
+      }
+    }
+</script>
+
+<style scoped>
+  .bgm{
+    width: 100%;
+    height: 180px;
+    text-align: center;
+    position: relative;
+  }
+  .wlab{
+    color: white;
+    font-weight:300;
+    margin-top: 10px;
+    margin-bottom: 0px;
+    font-size: 15px;
+    position: relative;
+  }
+
+  .photo{
+    width: 70px;
+    height: 70px;
+    margin-top: 27px;
+    border-radius: 32px;
+    position: relative;
+  }
+
+  .imgR{
+    width: 12px;
+    float: right;
+    position: absolute;
+    margin: auto 0;
+    top: 0;
+    bottom: 0;
+    right: 16px;
+  }
+
+  .cell{
+    background-color: white;
+    padding: 16px;
+    position: relative;
+  }
+</style>

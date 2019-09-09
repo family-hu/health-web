@@ -1,0 +1,48 @@
+import axios,{ config } from '../http.js'
+
+const state = {
+
+};
+
+const err = (error) => {
+  throw new Error(error.data.rtnMsg);
+};
+
+const getters = {
+
+};
+
+const mutations = {
+
+};
+
+const actions = {
+  //获取服务列表
+  servInfoList:({ commit }, request) => {
+    return axios.post("servInfoList.mo", request, config).then(value => {
+      return value.data.dataList;
+    }).catch(err);
+  },
+
+  //获取机构详情
+  orgDetail:({ commit }, request) => {
+    return axios.post("newsAuthorOrgGet.mo", request, config).then(value => {
+      return value.data.orgObj;
+    }).catch(err);
+  },
+
+  //获取服务包详情
+  servInfoGet:({ commit }, request) => {
+    return axios.post("servInfoGet.mo", request, config).then(value => {
+      return value.data.servObj;
+    }).catch(err);
+  },
+
+};
+
+export default {
+  state,
+  mutations,
+  actions,
+  getters
+}

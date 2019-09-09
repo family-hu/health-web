@@ -1,0 +1,273 @@
+<template>
+    <div>
+      <div style="height: 180px;">
+        <mt-swipe :auto="5000">
+          <mt-swipe-item  v-for="ad in adList" :key="ad.advId.value">
+              <img :src="ad.imgUrl" height="180px" width="100%" alt="">
+            </mt-swipe-item>
+        </mt-swipe>
+
+      </div>
+
+      <div class="cell">
+        <input placeholder="搜索你需要的专家或者医疗服务" class="inputcs" v-if="false">
+
+        <div style="display: inline-block;width: 100%;padding-top: 16px; padding-bottom: 16px;">
+          <div class="itme0" @click="goDoctor('1')">
+            <img class="icon" :src="homeOnline">
+            <br>
+            <span class="text">在线咨询</span>
+          </div>
+          <div class="itme1" @click="goDoctor('2')">
+            <img class="icon" :src="homeAppoint">
+            <br>
+            <span class="text">面诊预约</span>
+          </div>
+          <div class="itme2" @click="focusDoctor">
+            <img class="icon" :src="homeDoctor">
+            <br>
+            <span class="text">我的医生</span>
+          </div>
+          <div class="itme3" @click="goOrder">
+            <img class="icon" :src="homeOrder">
+            <br>
+            <span class="text">我的订单</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="cell" style="margin-top: 10px;height: 227px;padding-top: 16px">
+        <span class="title">专家团队</span>
+        <button type="button" class="btn" @click="goTab('doctor')">更多</button><br>
+        <div class="titlemin">知名专家&业界权威</div>
+        <doctor-item v-for="doctorDetail in doctorList" :key="doctorDetail.userId.value" :doctorDetail="doctorDetail" @click.native="toDoctorDetail(doctorDetail)"></doctor-item>
+      </div>
+
+      <div class="cell" style="margin-top: 10px;padding-top: 16px">
+        <span class="title">特色服务</span>
+        <button type="button" class="btn" @click="goTab('service')">更多</button><br>
+        <span class="titlemin">特色服务包&专科治疗&健康管理</span>
+
+        <service-item v-for="item in serviceList" :key="item.servId.value" :serviceItem="item" @click.native="toServiceDetail(item)" ></service-item>
+
+      </div>
+
+      <div class="cell" style="margin-top: 10px;padding-top: 16px">
+        <span class="title">健康资讯</span>
+        <button type="button" class="btn" @click="goTab('news')">更多</button><br>
+        <span class="titlemin">行业动态&健康资讯</span>
+        <news-item v-for="item in newsList" :key="item.newsId.value" :newsItem="item" @click.native="toNewsDetail(item)" ></news-item>
+      </div>
+    </div>
+</template>
+
+<script>
+  import imgMap from '../../../static/js/imgmap.js'
+  import NewsItem from '../news/NewsItem.vue';
+  import ServiceItem from '../service/ServiceItem.vue';
+  import GridDoctorDetail from '../doctor/GridDoctorItem';
+  import * as types from '../../constant/ConstantConfig.js';
+    export default {
+      data() {
+        return {
+          adList: [],
+          newsList: [],
+          serviceList: [],
+          doctorList:[],
+        }
+      },
+
+      components: {
+         newsItem: NewsItem,
+         serviceItem: ServiceItem,
+         doctorItem: GridDoctorDetail
+      },
+
+      props: ['orgId'],
+
+      computed: {
+        homeOnline() {
+          return imgMap.homeOnline;
+        },
+        homeDoctor() {
+          return imgMap.homeDoctor;
+        },
+        homeAppoint() {
+          return imgMap.homeAppoint;
+        },
+        homeOrder() {
+          return imgMap.homeOrder;
+        }
+
+      },
+
+      methods: {
+        goTab(index) {
+          this.$emit("goTab", index);
+        },
+
+        goOrder() {
+          this.$router.push({path: "order", query: {orgId: this.orgId}});
+        },
+
+        focusDoctor() {
+           this.$router.push({path: "doctorConsultation", query:{orgId: this.orgId}});
+        },
+
+        goDoctor(type) {
+           this.$router.push({path: "doctorList", query:{type: type, orgId: this.orgId}});
+        },
+
+        toDoctorDetail(doctorDetail) {
+          this.$router.push({path: "doctorDetail", query: { userId: doctorDetail.userId.value}});
+        },
+
+        toNewsDetail(newsDetail) {
+          window.location.href = types.NEWS_DETAIL + newsDetail.newsId.value;
+        },
+
+        toServiceDetail(serviceDetail) {
+          this.$router.push({path: "serviceDetail", query: { servId: serviceDetail.servId.value}});
+        },
+
+        orgAdvList() {
+          let vm = this;
+          const request ={orgId: this.orgId};
+          this.$store.dispatch("orgAdvList", request).then((adList) => {
+            if(adList) {
+              for(let i = 0; i < adList.length; i++) {
+                vm.adList.push(adList[i]);
+              }
+            }
+          }).catch(error => {
+            this.$toast(error.message);
+          });
+        },
+
+        requestNewsList() {
+          let request = { orgId:this.orgId, tpId:0, type:1051, pageNum:this.page, pageSize:2 };
+          let vm = this;
+          this.$store.dispatch("newsList", request).then((newsList) => {
+            vm.newsList = newsList;
+          }).catch(error => {
+            this.$toast(error.message);
+          });
+        },
+
+        requestServiceList() {
+          let request = {acceptId:this.acceptId, ishowDraft:0, orgId: this.orgId, pageNum: this.page, pageSize:3};
+          let vm = this;
+          this.$store.dispatch("servInfoList", request).then((serviceList) => {
+            if(serviceList) {
+              for(let i = 0; i < serviceList.length; i++) {
+                vm.serviceList.push(serviceList[i]);
+              }
+            }
+          }).catch(error => {
+            this.$toast(error.message);
+          });
+        },
+
+        requestDoctorList() {
+          let request = {deptId:0,diseaseId:0,drName:"",orgId:this.orgId,regCode:0,serviceType:0,sortType:5,type:0,pageNum:this.page,pageSize:3};
+          let vm = this;
+          this.$store.dispatch("doctorList", request).then((data) => {
+            if(data.doctorList) {
+              for(let i = 0; i < data.doctorList.length; i++) {
+                vm.doctorList.push(data.doctorList[i]);
+              }
+            }
+          }).catch(error => {
+            this.$toast(error.message);
+          });
+        }
+      },
+
+      created() {
+        this.orgAdvList();
+        this.requestNewsList();
+        this.requestServiceList();
+        this.requestDoctorList();
+      }
+    }
+</script>
+
+<style scoped>
+  .inputcs{
+    /*text-align: right;*/
+    margin-top: 10px;
+    font-size: 16px;
+    font-weight: 400;
+    color: black;
+    margin-right: 5%;
+    margin-left: 4%;
+    line-height: 40px;
+    z-index: 99;
+    width: 90%;
+    /*background-color:#F7F7F7;*/
+    border-width: 0px; /* 边框宽度 */
+    outline: none; /* 不显示轮廓线 */
+    border-radius: 3px;
+    box-shadow:0px 4px 15px 0px rgba(153,153,153,0.24);
+    text-align: center;
+  }
+  .cell{
+    background-color: white;
+  }
+  .itme0{
+    width: 24%;
+    text-align: center;
+    display: inline-block;
+  }
+  .itme1{
+    width: 24%;
+    text-align: center;
+    display: inline-block
+  }
+  .itme2{
+    width: 24%;
+    text-align: center;
+    float: right;
+    display: inline-block
+  }
+  .itme3{
+    width: 24%;
+    text-align: center;
+    display: inline-block;
+  }
+  .icon{
+    width: 40px;
+    height: 40px;
+  }
+  .title{
+    font-size: 18px;
+    font-weight: bold;
+    color: #222222;
+    margin-left: 16px;
+  }
+  .titlemin{
+    font-size: 14px;
+    font-weight: 400;
+    color: #999999;
+    margin-left: 16px;
+    line-height: 25px;
+  }
+  .btn{
+    color: #999999;
+    float: right;
+    margin-right: 16px;
+    font-size: 14px;
+    background: transparent;
+    outline: none;
+    border: 0;
+  }
+
+  .text{
+    color: #222222;
+    font-weight: bold;
+    font-size: 13px;
+    max-height: 60px;
+    /*display: block;*/
+    /*display:inlie-block;*/
+  }
+</style>

@@ -1,0 +1,755 @@
+<template>
+    <!-- <div> -->
+      <!-- <app-header :title='drName'></app-header> -->
+      <div style="padding-bottom: 100px;">
+        <div id="messageList" class="npcTalklist">
+
+          <div class="npcTalkItem clearFix border-left">
+            <div class="npcTalkImg fl">
+              <img :src="docImg" alt="头像" width="50px" height="50px">
+            </div>
+            <div class="npcTalk fl">
+              <div class="npcTalkCon">您好，很高兴为您提供帮助，请先简单描述下您的病情。</div>
+            </div>
+          </div>
+          <message-item v-for="(message,index) in imMsgList" :key="index" :message="message" :isSelf="isSelf" :elementType="elementType" :friendHeadUrl="friendHeadUrl" :gender="gender"></message-item>
+        </div>
+
+        <div class="footer_box">
+          <div class="footerTalk flex-b">
+            <img class="voice" src="/static/img/im_voice.png" alt="">
+            <div class="center fl">
+              <input type="text" class="send_msg_text" id="send_msg_text">
+            </div>
+            <!-- <img class="face" src="/static/img/im_face.png" alt=""> -->
+            <button class="right" @click="onSendMsg()" type="button">发送</button>
+            <img class="add" @click="showCustom" src="/static/img/add_im.png" alt="">
+          </div>
+          <div class="CustomPopup" :class="{'CustomPopupContentShow':showCustomPopup}">
+          <div class="bottom_box">
+            <div class="list">
+              <input id="image" type="file" class="file_input" @change="sendPrivateImg()">
+              <img src="/static/img/im_phone.png" alt="">
+              <p>相册</p>
+            </div>
+          </div>
+          </div>
+        </div>
+
+      </div>
+
+    <!-- </div> -->
+</template>
+
+<script>
+import Header from "../Header.vue";
+// import { webim } from "../../assets/im/webim.js";
+import { mapGetters } from "vuex";
+import imgMap from "../../../static/js/imgmap.js";
+import MessageItem from "./MessageItem.vue";
+import websdk from "../../../node_modules/easemob-websdk";
+import CustomPopup from '../../customComponents/CustomPopup.vue';
+export default {
+  data() {
+    return {
+      drName: this.$route.query.drName,
+      selToID: this.$route.query.userId,
+      friendHeadUrl: this.$route.query.friendHeadUrl,
+      gender: this.$route.query.gender,
+      imMsgList: [],
+      // selType: webim.SESSION_TYPE.C2C,
+      loginInfo: null,
+      selSess: null,
+      getPrePageC2CHistroyMsgInfoMap: {},
+      conversation: null,
+
+      conn: null,
+      isSelf: null,
+      elementType: null,
+      showCustomPopup: false,
+    };
+  },
+
+  components: {
+    appHeader: Header,
+    messageItem: MessageItem,
+    CustomPopup,
+  },
+
+  computed: {
+    ...mapGetters(["loginData"]),
+    onlineEnable() {
+      return (
+        this.conversation &&
+        this.conversation.onlineStatus &&
+        this.conversation.onlineStatus.value == "1"
+      );
+    },
+    onlineBg() {
+      if (this.onlineEnable) return "rgba(0,147,255,0.1)";
+      return "rgba(181,181,181,1)";
+    },
+    borderColor() {
+      if (this.onlineEnable) return "rgba(127,201,255,1)";
+      return "rgba(0,0,0,0)";
+    },
+
+    onlineBg1() {
+      if (this.onlineEnable) return "rgba(0,147,255,1)";
+      return "rgba(181,181,181,1)";
+    },
+    canChat() {
+      if (this.conversation) {
+        if (this.conversation.sysType.value == "1003104") return true; //对方是用户
+        if (this.conversation.relId.value != "0") return true; //有关系
+        if (
+          this.conversation.isBusiUser.value == "1" &&
+          this.conversation.serving.value == "1"
+        )
+          return true; //在服务中的业务好友
+        if (this.conversation.chatTimes.value != "0") return true; //有免费聊天次数
+      }
+      return false;
+    },
+    priceValue() {
+      if (this.conversation) {
+        if (this.conversation.price) {
+          return this.conversation.price.value;
+        }
+      }
+      return "9999";
+    },
+    snapName() {
+      if (this.conversation) {
+        return this.conversation.snapName;
+      }
+      return "";
+    },
+    docImg() {
+      if (this.friendHeadUrl) {
+        return this.friendHeadUrl;
+      } else {
+        let img = imgMap.docMale;
+        if (this.gender && this.gender == "0") {
+          img = imgMap.docFeMale;
+        }
+        return img;
+      }
+    }
+  },
+
+  methods: {
+    //底部弹出层
+    showCustom() {
+      this.showCustomPopup = !this.showCustomPopup;
+    },
+    // 单聊发送音频消息
+    sendPrivateAudio() {
+      var id = conn.getUniqueId();                   // 生成本地消息id
+      var msg = new WebIM.message('audio', id);      // 创建音频消息
+      var input = document.getElementById('audio');  // 选择音频的input
+      var file = WebIM.utils.getFileUrl(input);      // 将音频转化为二进制文件
+      var allowType = {
+          'mp3': true,
+          'amr': true,
+          'wmv': true
+      };
+      if (file.filetype.toLowerCase() in allowType) {
+          var option = {
+              apiUrl: WebIM.config.apiURL,
+              file: file,
+              to: 'username',                       // 接收消息对象
+              roomType: false,
+              chatType: 'singleChat',
+              onFileUploadError: function () {      // 消息上传失败
+                  console.log('onFileUploadError');
+              },
+              onFileUploadComplete: function () {   // 消息上传成功
+                  console.log('onFileUploadComplete');
+              },
+              success: function () {                // 消息发送成功
+                  console.log('Success');
+              },
+              flashUpload: WebIM.flashUpload
+          };
+          msg.set(option);
+          conn.send(msg.body);
+      }
+    },
+    // 单聊发送文本消息
+    onSendMsg() {
+      let val = $("#send_msg_text").val();
+      if (val == "" || !val) {
+        this.$toast("发送的消息不能为空");
+        return false;
+      }
+      // 单聊发送文本消息
+      var id = this.conn.getUniqueId(); // 生成本地消息id
+      var msg = new WebIM.message("txt", id); // 创建文本消息
+      msg.set({
+        msg: val, // 消息内容
+        to: "1052010152883953664", // 接收消息对象（用户id）
+        success: function(id, serverMsgId) {
+          console.log("send private text Success -- 发送成功");
+          $("#send_msg_text").val('');
+        },
+        fail: function(e) {
+          console.log("Send private text error  -- 发送失败");
+        }
+      });
+      msg.body.chatType = "singleChat";
+      this.conn.send(msg.body);
+      console.log(msg.body.body.msg,'==msg');
+      this.imMsgList.push(val);
+      localStorage.setItem("imMsgList", JSON.stringify(this.imMsgList));
+      this.isSelf = true;
+      this.elementType = 'TEXT';
+    },
+    // 私聊发送图片消息
+    sendPrivateImg() {
+      // var inputVal = document.getElementById("image").value;
+      // if(inputVal == ''){
+      //   return false;
+      // }
+      var id = this.conn.getUniqueId();
+      var msg = new WebIM.message("img", id);
+      var input = document.getElementById("image"); // 选择图片的input
+      var file = WebIM.utils.getFileUrl(input); // 将图片转化为二进制文件
+      var allowType = {
+        jpg: true,
+        gif: true,
+        png: true,
+        bmp: true
+      };
+
+      var option = {
+        apiUrl: WebIM.config.apiURL,
+        file: file,
+        to: "1052010152883953664",
+        roomType: false,
+        chatType: "singleChat",
+        onFileUploadError: function() {
+          console.log("onFileUploadError");
+        },
+        onFileUploadComplete: function() {
+          console.log("onFileUploadComplete");
+        },
+        success: function() {
+          console.log("Success");
+        }
+      };
+      // for ie8
+      try {
+        if (!file.filetype.toLowerCase() in allowType) {
+          console.log("file type error");
+          return;
+        }
+      } catch (e) {
+        option.flashUpload = WebIM.flashUpload;
+      }
+      msg.set(option);
+      msg.body.msgType = 'IMAGE';
+      this.conn.send(msg.body);
+      console.log(msg.body,'===msg');
+      this.imMsgList.push(msg.body.file.filename);
+      localStorage.setItem("imMsgList", JSON.stringify(this.imMsgList));
+      this.isSelf = true;
+      this.elementType = 'IMAGE';
+      console.log(this.imMsgList,'==this.imMsgList');
+    }
+
+  },
+
+  created() {
+    document.title = this.drName;
+    // WebIM.conn = new websdk.connection({
+    //   isHttpDNS: WebIM.config.isHttpDNS,
+    //   isMultiLoginSessions: WebIM.config.isMultiLoginSessions,
+    //   https: WebIM.config.https,
+    //   url: WebIM.config.xmppURL,
+    //   isAutoLogin: true,
+    //   heartBeatWait: WebIM.config.heartBeatWait,
+    //   autoReconnectNumMax: WebIM.config.autoReconnectNumMax,
+    //   autoReconnectInterval: WebIM.config.autoReconnectInterval,
+    //   isStropheLog: WebIM.config.isStropheLog,
+    //   delivery: WebIM.config.delivery
+    // });
+
+    this.conn = new WebIM.connection({
+      isMultiLoginSessions: WebIM.config.isMultiLoginSessions,
+      https:
+        typeof WebIM.config.https === "boolean"
+          ? WebIM.config.https
+          : location.protocol === "https:",
+      url: WebIM.config.xmppURL,
+      heartBeatWait: WebIM.config.heartBeatWait,
+      autoReconnectNumMax: WebIM.config.autoReconnectNumMax,
+      autoReconnectInterval: WebIM.config.autoReconnectInterval,
+      apiUrl: WebIM.config.apiURL,
+      isAutoLogin: true
+    });
+
+    // WebIM.flashUpload = UploadShim({
+    //   fileInputId: 'image'
+    // }, this.conn).flashUpload;
+
+    const options = {
+      apiUrl: WebIM.config.apiURL,
+      user: "1098775846283419600",
+      pwd: "111111",
+      appKey: WebIM.config.appkey,
+      success: function(re) {
+        console.log("连接服务器正常");
+      },
+      error: function(err) {
+        alert(err);
+      }
+    };
+    // const options = {
+    //   apiUrl: WebIM.config.apiURL,
+    //   user: "1052010152883953664",
+    //   pwd: "111111",
+    //   appKey: WebIM.config.appkey,
+    //   success: function(re) {
+    //     console.log("连接服务器正常111111");
+    //   },
+    //   error: function(err) {
+    //     alert(err);
+    //   }
+    // };
+    this.conn.open(options);
+    //获取缓存信息
+    let getStorage = localStorage.getItem("imMsgList")
+    if(getStorage){
+      // this.imMsgList.push(getStorage);
+
+    }
+    console.log(this.imMsgList,'==this.imMsgList');
+
+    let getImMsg = this.imMsgList;
+
+    this.conn.listen({
+      onOpened: function(message) {
+        //连接成功回调，连接成功后才可以发送消息
+        //如果isAutoLogin设置为false，那么必须手动设置上线，否则无法收消息
+        // 手动上线指的是调用conn.setPresence(); 在本例中，conn初始化时已将isAutoLogin设置为true
+        // 所以无需调用conn.setPresence();
+        console.log("%c [opened] 连接已成功建立", "color: green");
+      },
+      onClosed: function(message) {
+        console.log("连接关闭", message);
+      }, //连接关闭回调
+      onCmdMessage: function(message) {
+        console.log("收到命令消息");
+      }, //收到命令消息
+      onLocationMessage: function(message) {
+        console.log("收到位置消息");
+      }, //收到位置消息
+      onError: function(message) {
+        console.log("监听失败回调", message);
+      }, //失败回调
+      onTextMessage: function(message) {
+        //收到文本消息
+        let that = this;
+        console.log("接收消息", that);
+        // 在此接收和处理消息，根据message.type区分消息来源，私聊或群组或聊天室
+        console.log(message.type);
+        console.log("Text", message);
+        getImMsg.push(message.data);
+      },
+      onEmojiMessage: function(message) {
+        //收到表情消息
+        // 当为WebIM添加了Emoji属性后，若发送的消息含WebIM.Emoji里特定的字符串，connection就会自动将
+        // 这些字符串和其它文字按顺序组合成一个数组，每一个数组元素的结构为{type: 'emoji(或者txt)', data:''}
+        // 当type='emoji'时，data表示表情图像的路径，当type='txt'时，data表示文本消息
+        if (message.type == "txt") {
+          getImMsg.push(message.data);
+        } else if (message.type == "emoji") {
+          console.log("Emoji");
+          var data = message.data;
+          for (var i = 0, l = data.length; i < l; i++) {
+            console.log(data[i]);
+            getImMsg.push(message.data[i]);
+          }
+        }
+      },
+      onPictureMessage: function (message) {
+        //收到图片消息
+        console.log("Location of Picture is ", message);
+        var imgUrl = message.url;
+        var type = message.msgType;
+        var msgList = {
+          url : imgUrl,
+          msgType : type
+        };
+        getImMsg.push(msgList);
+        console.log(getImMsg,'==getImMsg');
+      },
+    });
+  },
+
+  mounted() {
+    // var that = this;
+    // this.$imConn.listen({
+    //   onTextMessage: function(message) {
+    //     console.log(message);
+    //     that.chatCont.push({ id: 2, cont: message.data });
+    //   },
+    //   onPresence: function(message) {
+    //     // 这里需要弹出面板标识有人要添加您为好友
+    //     console.log(message);
+    //     if (message.type == "subscribe") {
+    //       that.privateUser = message.from;
+    //       that.privateUserPanel = true;
+    //     }
+    //   }
+    // });
+  }
+
+  // mounted() {
+  //   document.title = this.drName;
+  //   let messageList = document.getElementById("messageList");
+  //   messageList.style.height = (window.innerHeight - 100) + "px";
+
+  //   this.conversationDetail();
+  //   $("#messageList").bind('click','.npcTalklist',function(event){
+  //     let audio= $(event.target).children('audio')[0]|| $(event.target).siblings('audio')[0];
+  //     if(audio){
+  //       if(audio.paused){
+  //         $('audio').each(function(idx,ele){
+  //           ele.pause();
+  //         });
+  //         audio.play();// 这个就是播放
+  //       }else {
+  //         audio.pause();
+  //       }
+  //     }
+  //   });
+  // }
+};
+</script>
+
+<style>
+.clearFix:after {
+  content: "";
+  height: 0;
+  display: block;
+  visibility: hidden;
+  clear: both;
+}
+.fl {
+  float: left;
+}
+.fr {
+  float: right;
+}
+
+.tip {
+  font-size: 13px;
+  color: #666666;
+  text-align: center;
+  width: 70%;
+  word-break: break-all;
+  padding: 5px 15px 5px 15px;
+  text-align: center;
+  background: rgba(230, 230, 230, 1);
+  border-radius: 6px;
+  margin: 10px auto;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  text-align: center; /*让div内部文字居中*/
+}
+
+.npcTalklist {
+  background-color: #f7f7f7;
+  box-sizing: border-box;
+  padding-top: 10px;
+  /*height: 636px;!*calc(100% - 100px);*!*/
+  overflow-y: auto;
+  width: 100%;
+}
+.npcTalkItem {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0.1rem 0.2rem 0.05rem;
+}
+/*QQ对话*/
+.npcTalk .npcTalkCon {
+  max-width: 2.2rem;
+  font-size: 0.15rem;
+  color: white;
+  background-color: #fff;
+  border-radius: 0.05rem;
+  word-wrap: break-word;
+  position: relative;
+  padding: 0.1rem;
+  text-align: justify;
+  color: black;
+}
+
+.npcTalkImg img {
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+}
+.npcTalk .npcTalkCon::after {
+  content: "";
+  width: 0;
+  height: 0;
+  border-width: 11px;
+  border-style: solid;
+  border-color: transparent;
+  position: absolute;
+  top: 16px;
+}
+.border-left .npcTalk {
+  float: left;
+}
+.border-right .npcTalk {
+  float: right;
+}
+.npcTalk .npcTalkCon i {
+  display: block;
+  width: 0.2rem;
+  height: 0.2rem;
+}
+.npcTalk.fl .npcTalkCon i {
+  float: left;
+  margin-right: 0.3rem;
+  background: url("/static/img/lyz.png") no-repeat center;
+  background-size: 0.3rem 0.3rem;
+}
+.npcTalk.fr .npcTalkCon i {
+  float: right;
+  margin-left: 0.3rem;
+  background: url("/static/img/lyy.png") no-repeat center -1px;
+  background-size: 0.3rem 0.3rem;
+}
+.border-left .npcTalkImg img {
+  margin-right: 0.2rem;
+}
+.border-right .npcTalkImg img {
+  margin-left: 0.2rem;
+}
+.border-left .npcTalk .npcTalkCon::after {
+  border-right-color: #fff;
+  left: -20px;
+}
+.border-right .npcTalk .npcTalkCon::after {
+  border-left-color: #fff;
+  right: -20px;
+}
+
+.npcTalk .userTalkCon {
+  max-width: 2.2rem;
+  font-size: 0.15rem;
+  color: white;
+  word-wrap: break-word;
+  background-color: #0093ff;
+  border-radius: 0.05rem;
+  position: relative;
+  padding: 0.1rem;
+  text-align: justify;
+  color: white;
+}
+
+.npcTalk .userTalkCon::after {
+  content: "";
+  width: 0;
+  height: 0;
+  border-width: 11px;
+  border-style: solid;
+  border-color: transparent;
+  position: absolute;
+  top: 16px;
+}
+
+.npcTalk .userTalkCon i {
+  display: block;
+  width: 0.2rem;
+  height: 0.2rem;
+}
+.npcTalk.fl .userTalkCon i {
+  float: left;
+  margin-right: 0.3rem;
+  background: url("/static/img/lyz.png") no-repeat center;
+  background-size: 0.3rem 0.3rem;
+}
+.npcTalk.fr .userTalkCon i {
+  float: right;
+  margin-left: 0.3rem;
+  background: url("/static/img/lyy.png") no-repeat center -1px;
+  background-size: 0.3rem 0.3rem;
+}
+.border-left .npcTalk .userTalkCon::after {
+  border-right-color: #0093ff;
+  left: -20px;
+}
+.border-right .npcTalk .userTalkCon::after {
+  border-left-color: #0093ff;
+  right: -20px;
+}
+
+
+.serveritme {
+  font-size: 14px;
+  font-weight: 400;
+  color: rgba(34, 34, 34, 1);
+  line-height: 13px;
+  width: auto;
+  margin: 8px;
+  float: left;
+  padding: 8px;
+  text-align: center;
+  background: rgba(0, 147, 255, 0.1);
+  border-radius: 13px;
+  border: 1px solid rgba(127, 201, 255, 1);
+}
+.footer_box{
+  position: fixed;
+  bottom: 0;
+  background-color: white;
+  width: 100%;
+}
+.footerTalk {
+  padding: 9px 15px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.footerTalk.audio {
+  display: none;
+}
+.footerTalk .center {
+  width: 80%;
+  height: 32px;
+}
+.footerTalk.audio .center {
+  text-align: center;
+  line-height: 0.5rem;
+}
+.footerTalk .center input {
+  width: 98%;
+  height: 100%;
+  border: 0;
+  background: rgba(247, 247, 247, 1);
+  border-radius: 2px;
+}
+.footerTalk .right {
+  text-align: center;
+  border: 0px solid transparent;
+  height: 32px; /* 高度 */
+  width: 100px;
+  background: rgba(0, 147, 255, 1);
+  border-radius: 5px;
+  cursor: pointer; /* 鼠标移入按钮范围时出现手势 */
+  color: white; /* 字体颜色 */
+  font-size: 14px; /* 字体大小 */
+  margin-left: 10px;
+}
+.voice{
+  width: 25px;
+  height: 25px;
+  margin-right: 10px;
+}
+.face{
+  width: 24px;
+  height: 24px;
+  margin: 0 10px;
+}
+.add{
+  width: 25px;
+  height: 25px;
+  margin-left: 10px;
+}
+.bottom_box{
+  width: 100%;
+  border-top: 1px solid rgba(238,238,238,.6);
+  overflow: hidden;
+  margin-bottom: 5px;
+}
+.CustomPopup{
+  height: 0;
+  transform: translateY(100%);
+  transition: all 0.5s liner;
+}
+.CustomPopupContentShow {
+  height: 100%;
+  transition: all 0.5s liner;
+  transform: translateY(0);
+}
+.list{
+  float: left;
+  text-align: center;
+  margin-left: 30px;
+  margin-top: 15px;
+  position: relative;
+}
+.list img{
+  width: 55px;
+  height: 55px;
+}
+.list p{
+  color: #B3B3B3;
+  font-size: 12px;
+}
+.list .file_input{
+  width: 55px;
+  height: 55px;
+  position: absolute;
+  top:0;
+  left: 0;
+  z-index: 300;
+  opacity: 0;
+}
+@media (max-width: 374px) {
+  html {
+    font-size: 85.34px;
+  }
+  body {
+    font-size: 0.12rem;
+  }
+}
+@media (min-width: 320px) {
+  html {
+    font-size: 85.34px;
+  }
+}
+@media (min-width: 360px) {
+  html {
+    font-size: 96px;
+  }
+}
+@media (min-width: 375px) {
+  html {
+    font-size: 100px;
+  }
+}
+@media (min-width: 384px) {
+  html {
+    font-size: 102.5px;
+  }
+}
+@media (min-width: 411px) {
+  html {
+    font-size: 110px;
+  }
+}
+@media (min-width: 600px) {
+  html {
+    font-size: 160.4px;
+  }
+}
+@media (min-width: 768px) {
+  html {
+    font-size: 205.4px;
+  }
+}
+@media (min-width: 800px) {
+  html {
+    font-size: 213px;
+  }
+}
+</style>

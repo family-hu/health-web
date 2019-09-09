@@ -1,0 +1,181 @@
+<template>
+    <div>
+      <div class="cell">
+        <div style="height: 90px">
+          <img width="70px" height="70px" :src="docImg" style="float: left ">
+          <div >
+            <div style="display: inline-block; padding-left: 10px;padding-top: 10px">
+              <span class="namecs">{{ doctorDetail.userName | textFilter }}</span>
+              <span class="titlecs">{{ deptName }}</span>
+              <span class="titlecs">{{ doctorDetail.titlesName }}</span>
+            </div>
+            <img class="img" :src="arrowImg">
+          </div>
+          <p class="jibie">{{ doctorTitle }}</p>
+        </div>
+
+        <hr class="full-line" align= center  size="1" v-if="doctorDetail.isTalk || doctorDetail.isSubscribe || doctorDetail.isServPage">
+        <button type="button" class="btn1" v-if="doctorDetail.isTalk" @click.stop="toChat">咨询</button>
+        <button type="button" class="btn2" v-if="doctorDetail.isSubscribe" @click.stop="goAppoint">预约</button>
+        <button type="button" class="btn3" v-if="doctorDetail.isServPage" @click.stop="goService">服务包</button>
+      </div>
+    </div>
+</template>
+
+<script>
+  import * as type from '../../constant/ConstantConfig.js'
+  import imgMap from '../../../static/js/imgmap.js';
+    export default {
+        props: {
+          doctorDetail: {}
+        },
+
+      filters: {
+        textFilter(value) {
+          if(!value) return '-';
+          return value;
+        }
+      },
+
+        computed: {
+          docImg() {
+            let imgUrl = imgMap.docRectMale;
+            if(this.doctorDetail.photoUrl) {
+              imgUrl = this.doctorDetail.photoUrl;
+            } else {
+              if(this.doctorDetail.gender) {
+                let gender = this.doctorDetail.gender.value;
+                if(gender == "0") {
+                  imgUrl = imgMap.docRectFeMale;
+                }
+              }
+            }
+            return imgUrl;
+          },
+          arrowImg() {
+            return imgMap.arrowRight;
+          },
+          deptName() {
+            if(!this.doctorDetail.userId) return '';
+            if (this.doctorDetail.department.value == type.COUNTRY_ALL_DEPART) {  //乡村全科
+              if (this.doctorDetail.deptDesp) {
+                return this.doctorDetail.deptDesp;
+              } else {
+                if (this.doctorDetail.departmentName) {
+                  return this.doctorDetail.departmentName;
+                }
+              }
+            } else {
+              if (this.doctorDetail.departmentName) {
+                return this.doctorDetail.departmentName;
+              }
+            }
+            return '';
+          },
+          doctorTitle() {
+            let title = this.doctorDetail.orgNames;
+            let officeTypeName =  this.doctorDetail.officeTypeName;
+            if(officeTypeName && officeTypeName == "无级别") officeTypeName = "";
+            if (officeTypeName) {
+              title += (" | " + officeTypeName);
+            }
+            return title;
+          },
+        },
+
+      methods: {
+        toChat() {
+          this.$router.push({
+            path: "chat",
+            query: {userId: this.doctorDetail.userId.value, drName: this.doctorDetail.userName, friendHeadUrl: this.doctorDetail.photoUrl, gender: this.doctorDetail.gender.value}
+          })
+        },
+        goAppoint() {
+          this.$router.push({
+            path: "doctorAppoint",
+            query: {userId: this.doctorDetail.userId.value}
+          })
+        },
+        goService() {
+          this.$router.push({path: "serviceList", query: {acceptId: this.doctorDetail.userId.value}});
+        },
+      }
+
+    }
+</script>
+
+<style scoped>
+
+  .cell{
+    background:rgba(255,255,255,1);
+    padding: 15px 16px;
+    margin: 10px 12px 0px 12px;
+  }
+
+  .namecs{
+    font-size:16px;
+    font-weight:bold;
+    color:#222222;
+    line-height:18px;
+  }
+
+  .titlecs{
+    font-size:14px;
+    font-weight:bold;
+    color:#222222;
+    line-height:13px;
+    margin-left: 2px;
+  }
+
+  .jibie{
+    font-size:14px;
+    font-weight:400;
+    color:rgba(34,34,34,1);
+    margin-top: 10px;
+    line-height:15px;
+    margin-left: 80px;
+    margin-right: 20px;
+  }
+  .img{
+    float: right;
+    width: 12px;
+    margin-top: 30px;
+  }
+
+  .btn1{
+    width: 60px;
+    height: 25px;
+    border-color: rgba(0,147,255,1);
+    color:  rgba(0,147,255,1);
+    border-radius: 12px;
+    border-bottom-width: 1px;
+    border-bottom-style: double;
+    background-color: white;
+    margin-top: 10px;
+    margin-left: 1px;
+  }
+  .btn2{
+    width: 60px;
+    height: 25px;
+    border-color:#FF9917;
+    color: #FF9917;
+    border-radius: 12px;
+    border-bottom-width: 1px;
+    border-bottom-style: double;
+    background-color: white;
+    margin-top: 10px;
+    margin-left: 19px;
+  }
+  .btn3{
+    width: 60px;
+    height: 25px;
+    border-color:#FF5B5B;
+    color: #FF5B5B;
+    border-radius: 12px;
+    border-bottom-width: 1px;
+    border-bottom-style: double;
+    background-color: white;
+    margin-top: 10px;
+    margin-left: 19px;
+  }
+</style>

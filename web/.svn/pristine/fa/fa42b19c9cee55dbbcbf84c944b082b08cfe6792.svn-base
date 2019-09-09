@@ -1,0 +1,125 @@
+<template>
+  <div>
+    <ul v-if="orderList.length > 0" v-infinite-scroll="loadMore" infinite-scroll-disabled="loading" infinite-scroll-distance="50" infinite-scroll-immediate-check="false">
+      <order-item v-for="item in orderList" :key="item.orderId.value" :orderItem="item" @cancelOrder="cancelOrder" @click.native="toDetail(item)" ></order-item>
+    </ul>
+    <div class="empty" v-if="orderList.length == 0">
+        <img :src="consultationEmpty" width="144px" height="136px">
+        <div style="font-size: 15px;margin-top: 10px;color:#b3b3b3">暂无此类订单</div>
+    </div>
+  </div>
+</template>
+
+<script>
+import { mapGetters } from "vuex";
+import OrderItem from "./ServiceOrderItem.vue";
+import imgMap from '../../../static/js/imgmap.js';
+export default {
+  data() {
+    return {
+      orderList: [],
+      loading: false,
+      orgId: this.$route.query.orgId,
+      page: 1,
+      loaded: false //是否加载完成
+    };
+  },
+
+  components: {
+    orderItem: OrderItem
+  },
+
+  computed: {
+    ...mapGetters(["loginData"]),
+    consultationEmpty() {
+      return imgMap.consultationEmpty;
+    },
+  },
+
+  methods: {
+    toDetail(orderDetail) {
+      // let json = JSON.stringify(orderDetail);
+      // sessionStorage.setItem("orderDetail", json);
+      // this.$router.push("/orderDetail");
+    },
+
+    loadMore() {
+      if (!this.loaded) {
+        this.requestOrderList();
+      }
+    },
+
+    requestOrderList() {
+      this.loading = true;
+      let request = {
+        planStatus: 0,
+        status: 0,
+        pageNum: 1,
+        pageSize: 10,
+        orgId: this.orgId
+      };
+      let vm = this;
+      this.$store
+        .dispatch("servOrderList", request)
+        .then(data => {
+          vm.page++;
+          if (data.orderList) {
+            for (let i = 0; i < data.orderList.length; i++) {
+              vm.orderList.push(data.orderList[i]);
+            }
+          }
+          vm.loaded = vm.orderList.length == data.total;
+          vm.loading = false;
+        })
+        .catch(error => {
+          vm.loading = false;
+          vm.loaded = true;
+          this.$toast(error.message);
+        });
+    },
+    cancelOrder(request) {
+      let vm = this;
+      this.$indicator.open();
+      this.$store
+        .dispatch("servOrderAudit", request)
+        .then(() => {
+          this.$toast("取消成功");
+          vm.updateOrderItem(request);
+        })
+        .catch(e => {
+          this.$toast(e.message);
+        })
+        .finally(() => {
+          this.$indicator.close();
+        });
+    },
+    updateOrderItem(request) {
+      for (let i = 0; i < this.orderList.length; i++) {
+        let orderItem = this.orderList[i];
+        if (orderItem.orderId.value == request.orderId) {
+          orderItem.isEnd.value = "1";
+          orderItem.cancelStatus.value = "1";
+          break;
+        }
+      }
+    }
+  },
+
+  created() {
+    this.requestOrderList();
+  }
+};
+</script>
+
+<style scoped>
+ul,
+li {
+  padding: 0;
+  list-style: none;
+  margin: 0;
+}
+.empty {
+  padding: 50px 40px;
+  text-align: center;
+}
+</style>

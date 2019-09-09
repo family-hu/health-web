@@ -1,0 +1,316 @@
+<template>
+    <div>
+      <div class="npcTalkItem clearFix " :class="[!isSelf ? 'border-left' : 'border-right']" v-if="!tipType && !customType(105)">  <!--  不是提示消息，不是服务包-->
+
+        <div class="npcTalkImg" :class="[!isSelf ? 'fl' : 'fr']">
+          <img :src="headImg" alt='头像' width='50px' height='50px'>
+        </div>
+
+        <div class="npcTalk" :class="[!isSelf ? 'fl' : 'fr']">
+
+          <div class="npcTalkCon" v-if="elementType == TEXT || elementType == FACE" v-html="eleHtml"></div>  <!--  表情，文字  -->
+
+          <div class="npcTalkCon" v-if="elementType == IMAGE">  <!--  图片  -->
+            <img :src="imgUrl" style="CURSOR: hand" />
+          </div>
+
+          <div class="npcTalkCon audioPlay" v-if="elementType == SOUND">   <!--  音频  -->
+            <i> </i>{{ videoSeconds }}'
+            <audio :src="videoUrl" controls="controls"  preload="none"></audio>
+          </div>
+
+          <div class="npcTalkCon" style="width: 200px;" v-if="customType(100)" @click="newsDetail">  <!--  自定义消息  资讯  -->
+            <div class="title">{{ title }}</div>
+            <div class="content maxLine"> {{ htmlContent }}</div>
+            <hr class="full-line" style="margin: 10px 0" />
+            <div style="font-size: 14px;color: #666666;">资讯</div>
+          </div>
+
+          <div class="npcTalkCon" style="width: 200px;" v-if="customType(101)" @click="docDetail">  <!--  自定义消息  名片  -->
+            <div class="title">{{ title }}</div>
+            <div class="content"> {{ org }} &nbsp;&nbsp; {{ dept }}</div>
+            <hr class="full-line" style="margin: 10px 0" />
+            <div style="font-size: 14px;color: #666666;">医生</div>
+          </div>
+
+          <div class="npcTalkCon" style="width: 160px;" v-if="customType(102)" @click="toHome">    <!--  自定义消息  机构  -->
+            <div class="title">{{ orgNames }}</div>
+            <hr class="full-line" style="margin: 10px 0" />
+            <div style="font-size: 14px;color: #666666;">机构</div>
+          </div>
+
+          <div class="npcTalkCon" style="width: 200px;" v-if="customType(103)">    <!--  自定义消息  健康计划  -->
+            <div class="title">{{ title }}</div>
+            <div class="content maxLine">{{ healthHtmlContent }}</div>
+            <hr class="full-line" style="margin: 10px 0" />
+            <div style="font-size: 14px;color: #666666;">健康计划</div>
+          </div>
+
+          <div class="npcTalkCon" style="width: 200px;" v-if="customType(104)">    <!--  自定义消息  随访计划  -->
+            <div class="title">{{ title }}</div>
+            <div class="content maxLine">{{ content }}</div>
+            <hr class="full-line" style="margin: 10px 0" />
+            <div style="font-size: 14px;color: #666666;">随访计划</div>
+          </div>
+
+        </div>
+
+      </div>
+
+      <service-item style="margin: 0 16px;" :serviceItem="serviceItem" v-if="customType(105)" @click.native="serviceDetail"></service-item>  <!--  自定义消息  服务包  -->
+
+      <div class="tip" v-if="tipType">{{ tipValue }}</div>  <!--  自定义消息  提示信息  -->
+
+
+
+    </div>
+</template>
+
+<script>
+  import { webim } from '../../assets/im/webim.js'
+  import { mapGetters } from 'vuex'
+  import imgMap from '../../../static/js/imgmap.js'
+  import { faces } from '../../../static/js/face.js'
+  import ServiceItem from  '../service/ServiceItem.vue'
+  import * as types from '../../constant/ConstantConfig.js'
+    export default {
+      data() {
+        return {
+          TEXT: webim.MSG_ELEMENT_TYPE.TEXT,
+          CUSTOM: webim.MSG_ELEMENT_TYPE.CUSTOM,
+          IMAGE: webim.MSG_ELEMENT_TYPE.IMAGE,
+          SOUND: webim.MSG_ELEMENT_TYPE.SOUND,
+          FACE: webim.MSG_ELEMENT_TYPE.FACE,
+        }
+      },
+
+      props: {
+        message: {},
+        friendHeadUrl: '',
+        gender: ''
+      },
+
+      components: {
+        serviceItem: ServiceItem
+      },
+
+      computed: {
+        ...mapGetters(['loginData']),
+
+        eleHtml() {
+          let elems = this.message.getElems(); //获取消息包含的元素数组
+          let count = elems.length;
+          if(count > 0) {
+            let html = '';
+            for (let i = 0; i < count; i++) {
+              let elem = elems[i];
+              let type = elem.getType(); //获取元素类型
+              let content = elem.getContent(); //获取元素对象
+              switch (type) {
+                case this.TEXT:
+                  html += content.getText();
+                  break;
+
+                case this.FACE:
+                  let data = content.getData();
+                  let index = webim.EmotionDataIndexs[data];
+                  if (index) {
+                    let path = faces[index - 1];
+                    html += "<img src='" + path + "' />";
+                  }
+                  break
+              }
+            }
+            return html;
+          }
+        },
+
+        firstEle() {
+          let elems = this.message.getElems(); //获取消息包含的元素数组
+          let count = elems.length;
+          if(count > 0) {
+            return elems[0];
+          }
+        },
+
+        tipType() {
+           let type = this.elementType;
+           if(type == this.CUSTOM && this.firstEle) {
+             let content = this.firstEle.getContent(); //获取元素对象
+             let data = content.getData(); //自定义数据
+             data = JSON.parse(data);
+             // console.log("自定义消息类型:" + data.userAction);
+             if(data.userAction == 301 || data.userAction == 300 || data.userAction == 200 || data.userAction == 201) return true;
+           }
+        },
+
+        tipValue() {
+          if(this.firstEle) {
+            let content = this.firstEle.getContent(); //获取元素对象
+            return content.getDesc();
+          }
+        },
+
+        elementType() {
+          if(this.firstEle) {
+            return this.firstEle.getType();
+          }
+        },
+
+        isSelf() {
+          return this.message.getIsSend();
+        },
+
+        imgUrl() {
+          if(this.firstEle) {
+            let content = this.firstEle.getContent(); //获取元素对象
+            return content.getImage(webim.IMAGE_TYPE.SMALL).getUrl(); //小图
+          }
+        },
+
+        videoUrl() {
+          // if (webim.BROWSER_INFO.type == 'ie' && parseInt(webim.BROWSER_INFO.ver) <= 8) {
+          //   return '[这是一条语音消息]demo暂不支持ie8(含)以下浏览器播放语音,语音URL:' + downUrl;
+          // }
+          if(this.firstEle) {
+            let content = this.firstEle.getContent(); //获取元素对象
+            return content.getDownUrl();
+          }
+        },
+
+        videoSeconds() {
+          if(this.firstEle) {
+            let content = this.firstEle.getContent(); //获取元素对象
+            return content.second;
+          }
+        },
+
+        headImg() {
+          let img;
+          if (this.isSelf) { //如果是自己发的消息
+            let userObj = this.loginData.userObj;
+            if(userObj.photoUrl) {
+              img = userObj.photoUrl;
+            }
+            img = imgMap.defaultAva;
+          } else { //如果别人发的消息
+            if(this.friendHeadUrl) {
+              img = this.friendHeadUrl;
+            } else {
+              img = imgMap.docMale;
+              if(this.gender && this.gender == "0") {
+                img = imgMap.docFeMale;
+              }
+            }
+          }
+          return img;
+        },
+
+        customData() {
+          const LosslessJSON = require('lossless-json');
+          let ele = this.firstEle;
+          let content = ele.getContent(); //获取元素对象
+          let data = content.getData(); //自定义数据
+          data = LosslessJSON.parse(data);
+          return data;
+        },
+
+        title() {
+          let data = this.customData;
+          return data.desc;
+        },
+        org() {
+          let data = this.customData;
+          return data.cardObj.orgNames;
+        },
+        dept() {
+          let data = this.customData;
+          return data.cardObj.departmentName;
+        },
+
+        orgNames() {
+          let data = this.customData;
+          return data.orgObj.orgNames;
+        },
+
+        htmlContent() {
+          let data = this.customData;
+          return data.articleObj.htmlContent;
+        },
+
+        healthHtmlContent() {
+          let data = this.customData;
+          return data.planObj.htmlContent;
+        },
+
+        content() {
+          let data = this.customData;
+          return data.visitObj.content;
+        },
+
+        serviceItem() {
+          let data = this.customData;
+          return data.servInfoObj;
+        }
+
+      },
+
+      methods: {
+        customType(type) {
+          let currentType = this.elementType;
+          if(currentType == this.CUSTOM && this.firstEle) {
+            let content = this.firstEle.getContent(); //获取元素对象
+            let data = content.getData(); //自定义数据
+            // console.log(data);
+            data = JSON.parse(data);
+            if (data.userAction == type) return true;
+          }
+          return false;
+        },
+
+        docDetail() {
+          let data = this.customData;
+          this.$router.push({path: "doctorDetail", query: { userId: data.cardObj.userId.value}})
+        },
+
+        serviceDetail() {
+          let data = this.customData;
+          this.$router.push({path: "serviceDetail", query: { servId: data.servInfoObj.servId.value}})
+        },
+
+        toHome() {
+          let data = this.customData;
+          this.$router.push({path: "home", query:{orgId: data.orgObj.orgId.value, focusEnter: true}});
+        },
+
+        newsDetail() {
+          let data = this.customData;
+          window.location.href = types.NEWS_DETAIL + data.articleObj.newsId.value;
+        }
+      }
+
+    }
+</script>
+
+<style scoped>
+  .title {
+    font-size: 15px;
+    color: #222222;
+    font-weight: bold;
+  }
+
+  .content {
+    font-size: 12px;
+    color: #666666;
+    margin-top: 10px;
+  }
+
+  .maxLine{
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+</style>

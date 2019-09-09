@@ -1,0 +1,233 @@
+<template>
+
+  <div style="background: white;margin: 0 15px;">
+    <div style="padding: 12px 16px;">
+      <span class="titlecs">{{ acceptOrgName }}&nbsp;</span>
+      <span class="state">{{ statusName }}</span>
+    </div>
+
+    <hr style="margin: 0px 16px;" class="full-line" size="1 ">
+
+    <div style="padding: 12px 16px;height: 80px; position: relative;">
+      <img width="80px" height="80px" :src="docImg" style="float: left">
+
+      <div style="margin-left: 96px; position: absolute;top: 50%; transform: translateY(-50%)">
+        <div>
+          <span class="namecs">{{ docName }}</span>
+          <span class="titlecs" style="padding-left: 4px;">&nbsp;{{ deptName }}</span>
+          <span class="titlecs" style="padding-left: 4px;">&nbsp;{{ titlesName }}</span>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="money">在线咨询：<strong>¥{{ price }}</strong></div>
+
+    <div style="display: inline-block;padding-top: 10px;padding-bottom: 10px;width: 100%" >
+      <button type="button" class="btn0" v-if="showPay" @click.stop="goPay">去支付</button>
+      <button type="button" class="cancel" v-if="showCancel" @click.stop="cancelOrder">取消订单</button>
+    </div>
+
+    <div style="height: 10px; background: #f7f7f7"></div>
+  </div>
+
+</template>
+
+<script>
+  import imgMap from '../../../static/js/imgmap.js';
+  import * as types from '../../constant/ConstantConfig.js';
+    export default {
+        props: ["orderItem"],
+
+        computed: {
+          showMenu() {
+            if(this.orderItem.cancelStatus.value != '0') return false;  //已取消
+            if(this.orderItem.isEnd.value == "1") return false;   //归档了
+            if(this.orderItem.status.value == types.ORDER_UNPAID) return true;  //未支付
+            if(this.orderItem.status.value == types.ORDER_UNCONFIRM) return true;  //未确认 可以取消
+            return false;
+          },
+
+          showPay() {
+            return this.showMenu && this.orderItem.status.value == types.ORDER_UNPAID;
+          },
+
+          showCancel() {
+            return this.showMenu && this.orderItem.status.value == types.ORDER_UNCONFIRM;
+          },
+
+          docImg() {
+            let imgUrl = imgMap.docMale;
+            let goodsSnapInfo = this.orderItem.goodsSnapObj;
+            if (goodsSnapInfo) {
+              let acceptUser = goodsSnapInfo.acceptUserObj;
+              if (acceptUser) {
+                if(acceptUser.photoUrl) {
+                  imgUrl = acceptUser.photoUrl;
+                } else {
+                  let gender = acceptUser.gender.value;
+                  if(gender == "0") {
+                    imgUrl = imgMap.docFeMale;
+                  }
+                }
+              }
+            }
+            return imgUrl;
+          },
+          acceptName() {
+            let goodsSnapInfo = this.orderItem.goodsSnapObj;
+            if (goodsSnapInfo) {
+              let acceptUser = goodsSnapInfo.acceptUserObj;
+              if (acceptUser) {
+                return acceptUser.userName;
+              }
+            }
+            return '';
+          },
+
+          acceptOrgName() {
+            let goodsSnapInfo = this.orderItem.goodsSnapObj;
+            if (goodsSnapInfo) {
+              let acceptUser = goodsSnapInfo.acceptUserObj;
+              if (acceptUser) {
+                return acceptUser.orgNames;
+              }
+            }
+            return '';
+          },
+
+          price() {
+            let goodsSnapInfo = this.orderItem.goodsSnapObj;
+            if (goodsSnapInfo) {
+              return goodsSnapInfo.price;
+            }
+            return '';
+          },
+          statusName() {
+            let status = this.orderItem.status.value;
+            let isEnd = this.orderItem.isEnd.value;
+            let cancelStatus = this.orderItem.cancelStatus.value;
+            if(status == types.ORDER_COMPLETE_UNCOMMENT || status == types.ORDER_COMPLETE_COMMENT) {
+              return "已完成";
+            }
+            if(isEnd == "0") {
+              if (status == types.ORDER_UNPAID) return "未付款";
+              if (status == types.ORDER_UNCONFIRM) return "待确认";
+              if (status == types.ORDER_ADVICING) return "咨询中";
+            } else {
+              if(cancelStatus != "0") {
+                return "已完成(撤销)";
+              }
+              if (status == types.ORDER_UNPAID) return "已完成(未付款)";
+              if (status == types.ORDER_UNCONFIRM) return "已完成(未受理)";
+              if (status == types.ORDER_ADVICING) return "已完成";
+            }
+            return "已完成";
+          },
+
+          deptName() {
+            let goodsSnapInfo = this.orderItem.goodsSnapObj;
+            if (goodsSnapInfo) {
+              let acceptUser = goodsSnapInfo.acceptUserObj;
+              if (acceptUser) {
+                return acceptUser.departmentName;
+              }
+            }
+            return '';
+          },
+
+          titlesName() {
+            let goodsSnapInfo = this.orderItem.goodsSnapObj;
+            if (goodsSnapInfo) {
+              let acceptUser = goodsSnapInfo.acceptUserObj;
+              if (acceptUser) {
+                return acceptUser.titlesName;
+              }
+            }
+            return '';
+          },
+
+          docName() {
+            let goodsSnapInfo = this.orderItem.goodsSnapObj;
+            if (goodsSnapInfo) {
+              let acceptUser = goodsSnapInfo.acceptUserObj;
+              if (acceptUser) {
+                return acceptUser.userName;
+              }
+            }
+            return '';
+          }
+
+        },
+
+      methods: {
+        cancelOrder() {
+          let userId = this.$store.getters.loginData.userObj.userId.value;
+          let request = {desp:"不想买了", opType:3, servId:this.orderItem.servId.value, status:1, stepType:2006101100, userId:userId};
+          this.$emit("cancelOrder", request);
+        },
+
+        goPay() {
+          this.$router.push({path:"orderSubmitPay",query:{servId: this.orderItem.servId.value,price:this.orderItem.goodsSnapObj.price, snapId:this.orderItem.goodsSnapObj.snapId.value, orgId:this.orderItem.orgId.value, drId:this.orderItem.acceptUserObj.userId.value}})
+        }
+      }
+
+    }
+</script>
+
+<style scoped>
+
+  .btn0{
+    border-radius: 4px;
+    text-align: center;
+    font-size:12px;
+    font-weight: 300;
+    color: floralwhite;
+    background-color: rgba(0,147,255,1);
+    height: 29px;
+    float: right;
+    margin-right: 13px;
+    border: 1px solid transparent;
+  }
+  .cancel{
+    border-radius: 4px;
+    text-align: center;
+    font-size:12px;
+    font-weight: 400;
+    color: rgba(0,147,255,1);
+    background-color:white;
+    height: 29px;
+    float: right;
+    margin-right: 13px;
+    border: 1px solid rgba(0,147,255,0.5);
+  }
+
+  .namecs{
+    font-size:18px;
+    font-weight:bold;
+    color:#222222;
+  }
+
+  .titlecs{
+    font-size:15px;
+    font-weight:bold;
+    color:#222222;
+  }
+
+  .money{
+    font-size:15px;
+    font-weight:500;
+    color: #222222;
+    margin-right: 16px;
+    float: right;
+  }
+
+
+  .state{
+    font-size:15px;
+    font-weight:bold;
+    color:#FF4343;
+    float: right;
+  }
+
+</style>

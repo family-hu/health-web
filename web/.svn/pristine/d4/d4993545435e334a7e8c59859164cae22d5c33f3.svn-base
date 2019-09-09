@@ -1,0 +1,95 @@
+<template>
+    <div>
+        <div class="cell">
+          <span class="text">姓名</span>
+          <span class="lab">{{ userName }}</span>
+          <hr class="line" align= center width="100%" size="0.5">
+        </div>
+        <div class="cell">
+          <span class="text">性别</span>
+          <span class="lab">{{ userSex }}</span>
+          <hr class="line" align= center width="100%" size="0.5">
+        </div>
+        <div class="cell">
+          <span class="text">生日</span>
+          <span class="lab">{{ userBirth }}</span>
+          <hr class="line" align= center width="100%" size="0.5">
+        </div>
+        <div class="cell">
+          <span class="text">已绑定手机号</span>
+          <span class="lab">{{ bindAccount }}</span>
+          <hr class="line" align= center width="100%" size="0.5">
+        </div>
+    </div>
+</template>
+
+<script>
+  import { mapGetters } from 'vuex'
+  import * as types from '../../constant/ConstantConfig.js';
+    export default {
+      computed: {
+        ...mapGetters(['loginData']),
+        userName() {
+          const userObj = this.loginData.userObj;
+          if(userObj) {
+            if(userObj.nickName) return userObj.nickName;
+            if(userObj.userName) return userObj.userName;
+          }
+          return '';
+        },
+        userSex() {
+          const userObj = this.loginData.userObj;
+          if(userObj) {
+            if(userObj.gender.value == '1') return '男';
+            if(userObj.gender.value == '0') return '女';
+          }
+          return '未知';
+        },
+        userBirth() {
+          const userObj = this.loginData.userObj;
+          if(userObj) {
+            if(userObj.birth) return userObj.birth;
+          }
+          return '';
+        },
+        bindAccount() {
+          const userObj = this.loginData.userObj;
+          if(userObj) {
+            if(userObj.userAccountList) {
+              for (let i = 0; i < userObj.userAccountList.length; i++) {
+                let contact = userObj.userAccountList[i];
+                if (contact.accountType.value == types.ACCOUNT_TYPE_PHONE) {
+                  return contact.account;
+                }
+              }
+            }
+          }
+        }
+
+      },
+    }
+</script>
+
+<style scoped>
+  .line{
+    margin-top: 0%;
+    margin-bottom: 0px;
+    color: #F7F7F7;
+  }
+  .cell{
+    background-color: white;
+    line-height: 50px
+  }
+  .text{
+    color: #7F7F7F;
+    font-size: 16px;
+    font-weight: 400;
+    padding-left: 16px;
+  }
+  .lab{
+    font-size: 16px;
+    font-weight: 400;
+    padding-right: 16px;
+    float: right;
+  }
+</style>

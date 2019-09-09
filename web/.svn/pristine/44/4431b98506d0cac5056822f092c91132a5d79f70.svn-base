@@ -1,0 +1,316 @@
+<template>
+    <div>
+      <div class="bgv1">
+        <div class="linecell">
+          <span class="title">姓名</span>
+          <input placeholder="请输入姓名" class="inputcs" v-model="request.userName">
+        </div>
+        <hr class="line00" align= center size="1 ">
+        <div class="linecell">
+          <span class="title">性别</span>
+          <input placeholder="请选择性别" readonly style="background-color: transparent" class="inputcs" @click.stop="showSex = true" v-model="request.gender">
+        </div>
+        <hr class="line00" align= center size="1 ">
+        <div class="linecell">
+          <span class="title">出生年月</span>
+          <input placeholder="请选择日期" readonly style="background-color: transparent" class="inputcs" @click.stop="openDatePicker" v-model="request.birth">
+        </div>
+        <hr class="line00" align= center size="1 ">
+        <div class="linecell">
+          <span class="title">手机号</span>
+          <input placeholder="输入11位手机号" class="inputcs" v-model="request.mobile">
+        </div>
+      </div>
+      <div style="height: 10px;width: 100%;background-color: #F7F7F7"></div>
+      <div class="bgv1">
+        <div class="linecell" v-if="false">
+          <span class="title">初/复诊</span>
+          <div class="diccc" :class="[checkStatus ? 'checked' : 'unchecked']" @click="request.first = 1">复诊</div>
+          <div class="diddd" :class="[checkStatus ? 'unchecked' : 'checked']" @click="request.first = 0">初诊</div>
+
+        </div>
+        <hr class="line00" align= center size="1" v-if="false">
+
+        <div class="linecell" v-if="false">
+          <span class="title">疾病</span>
+          <input placeholder="请输入疾病" class="inputcs" v-model="request.disease">
+        </div>
+        <hr class="line00" align= center size="1 " v-if="false">
+
+        <div class="linecell">
+          <textarea class="textA"  placeholder ="对医生说点什么，可以介绍下自己或简单描述身体状态" clos="10" rows="3" warp="virtual" v-model="request.desc"></textarea>
+          <img class="img" v-if="false">
+          <img class="img" v-if="false">
+          <img class="img" v-if="false">
+          <div class="ttt" v-if="false">添加病症图片或者检查图片</div>
+        </div>
+      </div>
+      <button type="button" class="btn" @click="report">提交</button>
+
+
+      <mt-datetime-picker
+        ref="datePicker"
+        type="date"
+        startDate=""
+        year-format="{value}年"
+        month-format="{value}月"
+        date-format="{value}日"
+        :startDate="startDate"
+        @confirm="handleChange">
+      </mt-datetime-picker>
+
+      <mt-actionsheet :actions="sexs" v-model="showSex" cancel-text=""></mt-actionsheet>
+
+    </div>
+</template>
+
+<script>
+  import { mapGetters } from 'vuex'
+  import * as types from '../../constant/ConstantConfig.js';
+    export default {
+        data() {
+            return {
+                docId: this.$route.query.docId,
+                request: {userName: '', birth: "", mobile: '', first: 1, gender: '', bdid: '0', disease:'', desc: ''},
+                sexs: [],
+                showSex: false,
+            }
+        },
+
+        computed: {
+          ...mapGetters(['loginData']),
+          checkStatus() {
+            return this.request.first;
+          },
+          startDate() {
+             return new Date(Date.parse("1900-01-01"));
+          }
+        },
+
+        methods: {
+            report() {
+              let vm = this;
+              if(this.request.gender) {
+                if(this.request.gender == "男") {
+                   this.request.gender = "1";
+                } else if(this.request.gender == "女") {
+                  this.request.gender = "0";
+                }
+              } else {
+                this.request.gender = "-1";
+              }
+              this.$indicator.open();
+              this.request.userid = this.loginData.userObj.userId.value;
+              this.request.docid = this.docId;
+              //first
+              this.$store.dispatch("imNewPatientAdd", this.request).then(() => {
+                  this.$toast("报到成功");
+                  this.$router.replace({path: "doctorDetail", query: { userId: vm.docId}})
+              }).catch(e => {
+                this.$toast(e.message);
+              }).finally(() => {
+                this.$indicator.close();
+              });
+            },
+
+            openDatePicker() {
+              this.$refs.datePicker.open();
+            },
+
+          handleChange(value) {
+              this.request.birth = value.format("yyyy-MM-dd");
+          },
+
+          userName() {
+            const userObj = this.loginData.userObj;
+            if(userObj) {
+              if(userObj.userName) return userObj.userName;
+              if(userObj.nickName) return userObj.nickName;
+            }
+            return '';
+          },
+          userSex() {
+            const userObj = this.loginData.userObj;
+            if(userObj) {
+              if(userObj.gender.value == '1') return '男';
+              if(userObj.gender.value == '0') return '女';
+            }
+            return '未知';
+          },
+          userBirth() {
+            const userObj = this.loginData.userObj;
+            if(userObj) {
+              if(userObj.birth) return userObj.birth;
+            }
+            return '';
+          },
+
+          bindAccount() {
+            const userObj = this.loginData.userObj;
+            if(userObj) {
+              if(userObj.userAccountList) {
+                for (let i = 0; i < userObj.userAccountList.length; i++) {
+                  let contact = userObj.userAccountList[i];
+                  if (contact.accountType.value == types.ACCOUNT_TYPE_PHONE) {
+                    return contact.account;
+                  }
+                }
+              }
+            }
+          },
+
+          choseMale() {
+              this.request.gender = '男';
+          },
+          choseFemale() {
+            this.request.gender = '女';
+          }
+
+        },
+
+        mounted() {
+          this.sexs = [{
+            name: '男',
+            method: this.choseMale
+          }, {
+            name: '女',
+            method: this.choseFemale
+          }];
+        },
+
+        created() {
+           this.request.userName = this.userName();
+           this.request.birth = this.userBirth();
+           this.request.mobile = this.bindAccount();
+
+           const request = {docid: this.docId, userid: this.loginData.userObj.userId.value};
+           this.$store.dispatch("imnewpatientquery", request).then(data => {
+                const item = data.data;
+                if(item) {
+                    this.request.bdid = item.bdid.value;
+                    this.request.disease = item.disease;
+                    this.request.desc = item.desc;
+                    this.request.first = Number.parseInt(item.first.value);
+                }
+           }).catch(error => {
+             this.$toast(error.message);
+           });
+
+          this.$store.dispatch("userInfoGet", {userId: this.loginData.userObj.userId.value }).then(user => {
+              if(user.gender.value == "1") {
+                this.request.gender = "男";
+              } else if(user.gender.value == "0") {
+                this.request.gender = "女";
+              }
+              this.request.birth = user.birth;
+          });
+        }
+    }
+</script>
+
+<style scoped>
+
+  .bgv1{
+    background-color: white;
+    padding: 0px 16px 0px 16px;
+  }
+
+  .line00{
+    margin-top: 0%;
+    margin-left: 0%;
+    color: #CCCCCC;
+  }
+  .linecell{
+    display: inline-block;
+    line-height: 55px;
+    width: 100%;
+    padding-top: 8px;
+    padding-bottom: 2px;
+    margin-top: 10px;
+  }
+  .title{
+    font-weight: 400;
+    font-size: 16px;
+    line-height: 25px;
+    padding-bottom: 2px;
+    float: left;
+    color: #666666;
+  }
+
+  .checked {
+    background-color: #0093FF;
+    color: white;
+    border:1px solid transparent;
+  }
+
+  .unchecked {
+    background-color: white;
+    color:  #0093FF;
+    border:1px solid rgba(0,147,255,1);
+  }
+
+  .diccc{
+    float: right;
+    font-size: 14px;
+    width: 50px;
+    line-height: 23px;
+    text-align: center;
+    vertical-align: middle;
+    font-weight: 300;
+    border-radius: 4px;
+  }
+  .diddd{
+    float: right;
+    font-size: 14px;
+    width: 50px;
+    line-height: 23px;
+    text-align: center;
+    vertical-align: middle;
+    font-weight: 300;
+    border-radius: 4px;
+    margin-right: 10px;
+  }
+
+  .inputcs{
+    text-align: right;
+    float: right;
+    font-size: 16px;
+    color: black;
+    border-width: 0px; /* 边框宽度 */
+    margin-top: 2px;
+    outline: none; /* 不显示轮廓线 */
+  }
+  .textA{
+    border-width: 0px; /* 边框宽度 */
+    outline: none; /* 不显示轮廓线 */
+    font-size: 14px;
+    margin-top: 3px;
+    width: 100%;
+
+  }
+  .img{
+    height: 100px;
+    width: 100px;
+    margin-right: 5px;
+  }
+  .ttt{
+    font-size: 14px;
+    color: #CCCCCC;
+    height: 20px;
+    line-height: 15px;
+  }
+
+  .btn{
+    font-size:17px;
+    font-weight: 300;
+    color: floralwhite;
+    background-color: rgba(0,147,255,1);
+    height: 44px;
+    /*border-radius: 4px;*/
+    margin-top: 25px;
+    width: 100%;
+    border-width: 0px; /* 边框宽度 */
+    outline: none; /* 不显示轮廓线 */
+  }
+
+</style>

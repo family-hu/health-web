@@ -1,0 +1,182 @@
+<template>
+  <div style="position: relative">
+    <div class="cell">
+      <span class="textW">{{ statusName }}</span>
+      <br>
+      <!--<span class="textW1">订单超时</span>-->
+    </div>
+
+    <div class="cell0">
+      <span class="textb">服务医生</span>
+      <span class="textg">{{ acceptName }}</span>
+    </div>
+    <hr class="full-line" size="1">
+    <div class="cell0">
+      <span class="textb">患者姓名</span>
+      <span class="textg">{{ orderDetail.servName }}</span>
+    </div>
+    <hr class="full-line" size="1">
+    <div class="cell0">
+      <span class="textb">服务类型</span>
+      <span class="textg">在线咨询</span>
+    </div>
+    <hr class="full-line" size="1">
+    <div class="cell0">
+      <span class="textb">服务期限</span>
+      <span class="textg">{{ serviceTimes }}</span>
+    </div>
+    <hr class="full-line" size="1">
+    <div class="cell0">
+      <span class="textb">订单总价</span>
+      <span class="textg" style="color:rgba(0,147,255,1)">{{ goodPrice }}</span>
+    </div>
+    <hr class="full-line" size="1">
+
+    <div class="cell0" style="display: inline-block;margin-top: 10px; position: absolute; left: 0; right: 0">
+      <div>
+        <span class="textb">其他信息</span>
+      </div>
+      <hr class="full-line" size="1">
+      <div style="padding-top: 4px;line-height: 15px">
+        <span class="textbb">订单编号:</span>
+        <span class="textgg">{{ orderDetail.servId.value }}</span>
+      </div>
+      <div style="padding-top: 4px;line-height: 15px">
+        <span class="textbb">下单时间:</span>
+        <span class="textgg">{{ orderDetail.createTime }}</span>
+      </div>
+      <div style="padding-top: 4px;line-height: 15px" v-if="orderStatus > 1">
+        <span class="textbb">付款时间:</span>
+        <span class="textgg">{{ orderDetail.payTime }}</span>
+      </div>
+      <div style="padding-top: 4px;line-height: 15px" v-if="orderStatus > 2">
+        <span class="textbb">服务时间:</span>
+        <span class="textgg">{{ orderDetail.acceptTime }}</span>
+      </div>
+
+    </div>
+  </div>
+</template>
+
+<script>
+  import * as types from '../../constant/ConstantConfig.js';
+  export default {
+    data() {
+      return {
+        orderDetail: {},
+        orderId: this.$route.query.orderId,
+      }
+    },
+
+    computed: {
+      acceptName() {
+        let goodsSnapInfo = this.orderDetail.goodsSnapObj;
+        if (goodsSnapInfo) {
+          let acceptUser = goodsSnapInfo.acceptUserObj;
+          if (acceptUser) {
+            return acceptUser.userName;
+          }
+        }
+        return '';
+      },
+
+      orderStatus() {
+        return parseInt(this.orderDetail.status.value);
+      },
+
+      serviceTimes() {
+        let goodsSnapInfo = this.orderDetail.goodsSnapObj;
+        if (goodsSnapInfo) {
+          return "￥" + goodsSnapInfo.price + "/" + goodsSnapInfo.snapName;
+        }
+        return '';
+      },
+      goodPrice() {
+        let goodsSnapInfo = this.orderDetail.goodsSnapObj;
+        if (goodsSnapInfo) {
+          return "￥" + goodsSnapInfo.price;
+        }
+        return '';
+      },
+      statusName() {
+        let status = this.orderDetail.status.value;
+        let isEnd = this.orderDetail.isEnd.value;
+        let cancelStatus = this.orderDetail.cancelStatus.value;
+        if(status == types.ORDER_COMPLETE_UNCOMMENT || status == types.ORDER_COMPLETE_COMMENT) {
+          return "已完成";
+        }
+        if(isEnd == "0") {
+          if (status == types.ORDER_UNPAID) return "未付款";
+          if (status == types.ORDER_UNCONFIRM) return "待确认";
+          if (status == types.ORDER_ADVICING) return "咨询中";
+        } else {
+          if(cancelStatus != "0") {
+            return "已完成(撤销)";
+          }
+          if (status == types.ORDER_UNPAID) return "已完成(未付款)";
+          if (status == types.ORDER_UNCONFIRM) return "已完成(未受理)";
+          if (status == types.ORDER_ADVICING) return "已完成";
+        }
+        return "已完成";
+      }
+    },
+
+    created() {
+      let json = sessionStorage.getItem("orderDetail");
+      if(json) {
+        this.orderDetail = JSON.parse(json);
+      }
+      // let vm = this;
+      // if(this.orderId) {
+      //    let request = {orderId: this.orderId};
+      //   this.$store.dispatch("userOderInfo", request).then((data) => {
+      //     vm.orderDetail = data;
+      //   }).catch(error => {
+      //     this.$toast(error.message);
+      //   });
+      // }
+    }
+  }
+</script>
+
+<style scoped>
+  .cell {
+    background: rgba(0, 147, 255, 1);
+    padding: 12px 0;
+    text-align: center;
+  }
+
+  .textW {
+    font-size: 14px;
+    color: white;
+    font-weight: 300;
+
+  }
+
+  .cell0 {
+    background: white;
+    padding: 10px 10px;
+  }
+
+  .textb {
+    font-size: 13px;
+    color: black;
+    font-weight: 400;
+  }
+
+  .textg {
+    font-size: 12px;
+    color: #B8B8B8;
+    font-weight: 400;
+    float: right;
+  }
+
+  .textbb {
+    font-size: 12px;
+  }
+
+  .textgg {
+    font-size: 12px;
+    color: #B8B8B8;
+  }
+</style>

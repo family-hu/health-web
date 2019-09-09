@@ -1,0 +1,449 @@
+<template>
+  <div>
+    <img height="190px" width="100%" :src="topbg">
+    <img class="star" :src="focusImg" @click="focusChange" v-if="false">
+    <img class="share" :src="shareImg" @click="share" v-if="false"/>
+    <div class="bgv">
+      <div class="cell" style="position: relative;">
+        <div class="card" @click="share">医生名片</div>
+        <div style="padding: 16px">
+          <img class="icon" :src="docImg">
+          <div >
+            <div style="display: inline-block; padding-left: 10px;padding-top: 20px">
+              <span class="namecs">{{ doctorName }}</span>
+              <span class="titlecs1">{{ deptName }}</span>
+              <span class="titlecs1">{{ doctorDetail.titlesName }}</span>
+            </div>
+
+          </div>
+          <div style="display: inline-block; padding-left: 10px; ">
+            <div style="padding-top: 3px">
+              <span class="titlecs">{{ doctorTitle }}</span>
+            </div>
+          </div>
+        </div>
+
+        <div style="background: rgba(210, 210, 210, .2); border-radius: 16px; margin: 10px 16px; position: relative;" v-if="doctorDetail.notice">
+          <img :src="noticeImg" width="20px" style="padding: 4px 10px;"/>
+          <span class="notice"><marquee>公告：{{ doctorDetail.notice }}</marquee></span>
+        </div>
+
+
+        <div style="display: inline-block;width: 100%;margin-top: 15px;margin-bottom: 15px">
+          <div class="itme0" @click="goAppoint">
+            <img class="icon0" :src="yuyueImg">
+            <br>
+            <span class="text">面诊预约</span>
+          </div>
+          <div class="itme0" @click="goReport">
+            <img class="icon0" :src="reportImg">
+            <br>
+            <span class="text">诊后报到</span>
+          </div>
+          <div class="itme0" @click="toChat">
+            <img class="icon0" :src="askImg">
+            <br>
+            <span class="text">在线咨询</span>
+          </div>
+          <div class="itme0" @click="scanAll">
+            <img class="icon0" :src="serviceImg">
+            <br>
+            <span class="text">定制服务</span>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <div class="headerText">擅长疾病</div>
+        <div style="background: white; padding: 0px 15px 10px;">
+          <span class="jibing" v-for="disease in diseaseList">{{ disease.nameCn }}</span>
+        </div>
+
+      </div>
+
+      <div v-if="serviceList.length > 0">
+        <div class="headerText">服务包</div>
+        <service-item v-for="item in serviceList" :key="item.servId.value" :serviceItem="item" @click.native="toDetail(item)" ></service-item>
+        <div class="buleLeb" style="text-align: center" @click="scanAll">查看全部服务包</div>
+      </div>
+
+      <div>
+        <div class="headerText">医生简介</div>
+        <div class="titlecs" style="background: white; padding: 15px; margin-top: 0;">{{ despPerson }}</div>
+      </div>
+
+      <div v-if="evaList.length > 0">
+        <div class="headerText">患者评价({{total}})</div>
+        <eva-item v-for="item in evaList" :key="item.evaId.value" :evaItem="item" ></eva-item>
+        <div class="buleLeb" style="text-align: center" @click="toEvaList"> 查看全部评价</div>
+      </div>
+      <div>
+        <button type="button" class="btn1" @click="toChat" v-if="doctorDetail.isTalk">立即咨询</button>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script>
+  import { mapGetters } from 'vuex'
+  import * as type from '../../constant/ConstantConfig.js'
+  import imgMap from '../../../static/js/imgmap.js';
+  import ServiceItem from '../service/ServiceItem.vue';
+  import EvaItem from './EvaItem.vue';
+  export default {
+    data() {
+      return {
+        doctorDetail: {},
+        serviceList: [],
+        evaList: [],
+        drId: this.$route.query.userId,
+        total: 0
+      }
+    },
+    components: {
+      serviceItem: ServiceItem,
+      evaItem: EvaItem
+    },
+    computed: {
+      ...mapGetters(['loginData', 'loginUrl']),
+      doctorName() {
+        if (this.doctorDetail.userName) return this.doctorDetail.userName;
+        if (this.doctorDetail.nickName) return this.doctorDetail.nickName;
+        return ''
+      },
+      deptName() {
+        if(!this.doctorDetail.userId) return '';
+        if (this.doctorDetail.department.value == type.COUNTRY_ALL_DEPART) {  //乡村全科
+          if (this.doctorDetail.deptDesp) {
+           return this.doctorDetail.deptDesp;
+          } else {
+            if (this.doctorDetail.departmentName) {
+              return this.doctorDetail.departmentName;
+            }
+          }
+        } else {
+          if (this.doctorDetail.departmentName) {
+            return this.doctorDetail.departmentName;
+          }
+        }
+        return '';
+      },
+      doctorTitle() {
+        if(!this.doctorDetail.userId) return '';
+        let title = this.doctorDetail.orgNames;
+        let officeTypeName = this.doctorDetail.officeTypeName;
+        if (officeTypeName && officeTypeName == "无级别") officeTypeName = "";
+        if (officeTypeName) {
+          title += (" | " + officeTypeName);
+        }
+        return title;
+      },
+      despPerson() {
+        if (this.doctorDetail.despPerson) return this.doctorDetail.despPerson;
+        return '无';
+      },
+      topbg() {
+        return imgMap.topBg;
+      },
+      focusImg() {
+        if(this.isFocus) return imgMap.focusImg;
+        return imgMap.unfocusImg;
+      },
+
+      shareImg() {
+        return imgMap.shareImg;
+      },
+
+      yuyueImg() {
+        if(this.doctorDetail.isSubscribe) return imgMap.yuyueImg;
+        return imgMap.yuyueGrayImg;
+      },
+      askImg() {
+        if(this.doctorDetail.isTalk) return imgMap.askImg;
+        return imgMap.askGrayImg;
+      },
+      serviceImg() {
+        if(this.doctorDetail.isServPage) return imgMap.serviceImg;
+        return imgMap.serviceGrayImg;
+      },
+      reportImg() {
+        return imgMap.reportImg;
+      },
+      diseaseList() {
+        return this.doctorDetail.diseaseList;
+      },
+      docImg() {
+        let imgUrl = imgMap.docRectMale;
+        if(this.doctorDetail.photoUrl) {
+          imgUrl = this.doctorDetail.photoUrl;
+        } else {
+          if(this.doctorDetail.gender) {
+            let gender = this.doctorDetail.gender.value;
+            if(gender == "0") {
+              imgUrl = imgMap.docRectFeMale;
+            }
+          }
+        }
+        return imgUrl;
+      },
+      noticeImg() {
+        return imgMap.notice;
+      },
+      isFocus() {
+        if(this.doctorDetail.isFav) {
+            if(this.doctorDetail.isFav.value == "1") return true;
+        }
+        return false;
+      }
+    },
+
+    methods: {
+      share() {
+        let userObj = this.loginData.userObj;
+        let userid = '';
+        if(userObj) {
+          userid = userObj.userId.value;
+        }
+        window.location.href = "http://smanager.sinoylb.com/m/doc_code2.aspx?docid=" + this.drId + "&userid=" + userid;
+      },
+
+      toDetail(serviceDetail) {
+        this.$router.push({path: "serviceDetail", query: { servId: serviceDetail.servId.value}})
+      },
+
+      focusChange() {
+        if(this.loginData.tid && this.doctorDetail.userId) {  //已登录
+          let status = this.isFocus ? 0 : 1;
+          let request = {busiId: this.drId, busiType: 1000100105, opTable: 1, opType: 1014102, status: status};
+          this.$store.dispatch("busiLog", request).then((data) => {
+              this.doctorDetail.isFav.value = status;
+          }).catch(e => {
+            this.$toast(e.message);
+          })
+        } else {
+          window.location.href = this.loginUrl + "autoLogin";
+        }
+      },
+
+      goAppoint() {
+        if(!this.doctorDetail.isSubscribe) return;
+        this.$router.push({
+          path: "doctorAppoint",
+          query: {userId: this.$route.query.userId}
+        })
+      },
+
+      goReport() {
+        if(this.loginData.tid && this.doctorDetail.userId) {  //已登录
+          this.$indicator.open();
+          let request = {drId: this.drId};
+          this.$store.dispatch("perRegistAdd", request).then((data) => {
+            this.$router.push({path: "report", query: {docName: this.doctorName, drId: this.drId, orgId: this.doctorDetail.orgId.value}});
+          }).catch(e => {
+            this.$toast(e.message);
+          }).finally(() => {
+            this.$indicator.close();
+          });
+        } else {
+          window.location.href = this.loginUrl + "autoLogin";
+        }
+      },
+
+      toChat() {
+        if(!this.doctorDetail.isTalk) return;
+        this.$router.push({
+          path: "chat",
+          query: {userId: this.drId, drName: this.doctorName, friendHeadUrl: this.doctorDetail.photoUrl, gender: this.doctorDetail.gender.value}
+        })
+      },
+      scanAll() {
+        if(!this.doctorDetail.isServPage) return;
+        this.$router.push({path: "serviceList", query: {acceptId: this.drId}});
+      },
+      toEvaList() {
+        this.$router.push({path: "evaList", query: {drId: this.drId}});
+      }
+    },
+
+    created() {
+      let request = {"userIds": [this.drId]};
+      let vm = this;
+      this.$store.dispatch("expertDetailGet", request).then((doctorList) => {
+        if (doctorList && doctorList.length > 0) {
+          vm.doctorDetail = doctorList[0];
+        }
+      }).catch(error => {
+        this.$toast(error.message);
+      });
+
+      //获取服务包列表
+      let serviceListRequest = {acceptId: this.drId, ishowDraft:0, orgId:0, pageNum:1,pageSize:2};
+      this.$store.dispatch("servInfoList", serviceListRequest).then((serviceList) => {
+         vm.serviceList = serviceList;
+      }).catch(error => {
+        this.$toast(error.message);
+      });
+
+      //评价列表
+      let evaRequest = { busiId:0, busiType :1000106105, userTo: this.drId, pageNum:1,pageSize:2};
+      this.$store.dispatch("evaList", evaRequest).then((data) => {
+        vm.evaList = data.evaList;
+        vm.total = data.total;
+      }).catch(error => {
+        this.$toast(error.message);
+      });
+    }
+  }
+</script>
+
+<style scoped>
+  .star{
+    width: 20px;
+    height: 20px;
+    position: absolute;
+    right: 50px;
+    top: 15px;
+  }
+
+  .share{
+    width: 26px;
+    position: absolute;
+    right: 16px;
+    top: 12px;
+  }
+
+  .bgv{
+    top: 8%;
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: 92%;
+  }
+  .cell{
+    margin: 0px 15px 10px 15px;
+    background: white;
+    border-radius: 10px;
+  }
+  .icon{
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    float: left;
+  }
+  .namecs{
+    font-size:20px;
+    font-weight:bold;
+    color:#222222;
+    line-height:25px;
+  }
+
+  .titlecs{
+    font-size:14px;
+    font-weight:normal;
+    color:#222222;
+    line-height:20px;
+    margin-top: 2px;
+  }
+  .titlecs1{
+    font-size:14px;
+    font-weight:bold;
+    color:#222222;
+    line-height:20px;
+    margin-left: 2px;
+  }
+
+  .itme0{
+    width: 24%;
+    text-align: center;
+    display: inline-block;
+  }
+
+  .icon0{
+    width: 36px;
+    height: 36px;
+  }
+  .text{
+    font-size: 13px;
+    font-weight: bold;
+    color: #222222;
+  }
+
+  .headerText{
+    font-weight: bold;
+    font-size: 16px;
+    line-height: 20px;
+    background: white;
+    margin-top: 10px;
+    padding-left: 15px;
+    padding-top: 15px;
+    color: #222222;
+  }
+  .jibing{
+    display: inline-block;
+    font-size: 14px;
+    border-radius: 34px;
+    padding: 0 9px;
+    text-align: center;
+    margin-right: 15px;
+    border: 1px solid #cccccc;
+    line-height: 30px;
+    color: #222222;
+    white-space:nowrap;
+    margin-top: 10px;
+  }
+
+  .buleLeb{
+    color: rgba(0,147,255,1);
+    font-size: 14px;
+    font-weight: 500;
+    padding: 10px 0;
+    background: white;
+  }
+  .btn1{
+    font-size:15px;
+    color: floralwhite;
+    background-color: rgba(0,147,255,1);
+    height: 40px;
+    margin-top: 10px;
+    width: 100%;
+    border-width: 0px; /* 边框宽度 */
+    outline: none; /* 不显示轮廓线 */
+  }
+
+  .notice {
+    margin-left: 42px;
+    font-size: 14px;
+    color: #222222;
+    height: 26px;
+    font-weight: 500;
+    position: absolute;
+    vertical-align: middle;
+    top: 50%;
+    transform: translateY(-50%);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: -webkit-box;
+    -webkit-line-clamp: 1;
+    -webkit-box-orient: vertical;
+    margin-top: 4px;
+  }
+
+  .card{
+    color: white;
+    background-color: #FFBD00;
+    position: absolute;
+    height: 31px;
+    width: 70px;
+    top: 0;
+    right: 30px;
+    font-size: 13px;
+    text-align: center;
+    line-height: 31px;
+    border-bottom-left-radius: 6px;
+    border-bottom-right-radius: 6px;
+
+  }
+
+
+
+</style>

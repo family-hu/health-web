@@ -1,0 +1,177 @@
+<template>
+    <div>
+      <div class="cell">
+        <div style="padding: 15px 15px">
+          <img class="imguser" :src="orgImg">
+          <span class="labx" style="font-size: 17px">{{ serviceDetail.acceptName }}</span>
+          <br>
+          <span class="labm">{{ title }}</span>
+          <br>
+          <span class="labm">{{ orgNames }}</span>
+        </div>
+        <hr class="full-line" align= center  size="1 ">
+        <div style="padding: 10px 15px">
+
+          <div style="display: inline-block;width: 100%">
+            <span class="labx" style="font-size: 15px;line-height: 35px">{{ serviceDetail.servName }}</span>
+            <span class="money">￥{{ serviceDetail.price }}</span>
+          </div>
+
+          <div style="display: inline-block;width: 100%">
+            <span class="labm">服务期限:{{ days }}天</span>
+            <span class="moneyold">￥{{ serviceDetail.priceOri }}</span>
+          </div>
+
+          <div class="labm">适用人群:{{ serviceDetail.ptName }}</div>
+          <div class="labm">适用范围:{{ serviceDetail.scopeCustom }}</div>
+          <div class="labm">自服务包订单确认后开始的{{ days }}天内服务有效。</div>
+        </div>
+      </div>
+
+      <div class="cell" style="margin-top: 10px;text-align: center;">
+        <span class="title">服务内容</span>
+        <div v-html="serviceDetail.content"></div>
+      </div>
+
+      <div style="margin-top: 10px;">
+        <button type="button" class="btn" @click="goBuy">立即购买</button>
+      </div>
+    </div>
+</template>
+
+<script>
+  import imgMap from '../../../static/js/imgmap.js';
+  import * as types from '../../constant/ConstantConfig.js';
+    export default {
+        data() {
+            return {
+               servId: this.$route.query.servId,
+               serviceDetail: {}
+            }
+        },
+
+      computed: {
+        orgImg() {
+          if(this.serviceDetail.orgObj) return this.serviceDetail.orgObj.photoUrl;
+          return imgMap.orgImg;
+        },
+        title() {
+          if(!this.serviceDetail.basUserObj) return '';
+          return this.serviceDetail.basUserObj.titlesName + " " + this.serviceDetail.basUserObj.departmentName;
+        },
+        orgNames() {
+          if(!this.serviceDetail.orgObj) return '';
+          return this.serviceDetail.orgObj.orgNames;
+        },
+        days() {
+          if(!this.serviceDetail.days) return '';
+          return this.serviceDetail.days.value;
+        }
+
+      },
+
+        methods: {
+            servInfoGet() {
+              let vm = this;
+              this.$indicator.open();
+              let request = {servId: this.servId};
+              this.$store.dispatch("servInfoGet", request).then((serviceDetail) => {
+                vm.serviceDetail = serviceDetail;
+              }).catch(error => {
+                this.$toast(error.message);
+              }).finally(() => {
+                this.$indicator.close();
+              });
+            },
+
+            goBuy() {
+              if(this.serviceDetail.servId) {
+                this.$router.push({
+                  path: 'serviceSubmitPay',
+                  query: {
+                    servId: this.servId,
+                    price: this.serviceDetail.price,
+                    acceptUser: this.serviceDetail.acceptId.value,
+                    orgId: this.serviceDetail.orgObj.orgId.value
+                  }
+                });
+              }
+
+            }
+        },
+
+        created() {
+           this.servInfoGet();
+        }
+    }
+</script>
+
+<style scoped>
+  .cell{
+    width: 100%;
+    background:rgba(255,255,255,1);
+    padding: 0px 0px;
+  }
+  .labx{
+    color: #222222;
+    font-size: 15px;
+    font-weight: bold;
+  }
+  .labm{
+    color: rgba(34,34,34,1);
+    font-size: 14px;
+  }
+
+  .imguser{
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    float: right;
+  }
+
+  .moneyold{
+    padding-left: 10px;
+    font-size:12px;
+    font-weight:300;
+    color:rgba(102,102,102,1);
+    line-height:10px;
+    text-decoration: line-through;
+    float: right;
+    /*position: absolute;*/
+  }
+
+  .money{
+    font-size:15px;
+    font-weight:500;
+    color:rgba(255,0,31,1);
+    float: right;
+    line-height: 35px;
+    /*position: absolute;*/
+  }
+  .title{
+    color: rgba(0,147,255,1);
+    margin-top: 5px;
+    font-size: 15px;
+    line-height: 35px;
+    font-weight: 500;
+  }
+  .btn{
+    border-radius: 4px;
+    text-align: center;
+    font-size:15px;
+    font-weight: 300;
+    color: floralwhite;
+    background-color: rgba(0,147,255,1);
+    height: 33px;
+    margin: 5px 5%;
+    width: 90%;
+    bottom: 5px;
+    border: 1px solid transparent;
+  }
+  .llba{
+    color: red;
+    font-size: 12px;
+    bottom: 50px;
+    margin-left: 5%;
+  }
+</style>

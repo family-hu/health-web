@@ -1,0 +1,59 @@
+<template>
+    <div>
+      <div class="cell">
+        <img class="img" :src="hospitalDetail.photoUrl">
+        <div style="margin-left: 104px">
+          <div style="padding-top: 25px">
+            <span class="namecs">{{ hospitalDetail.orgNames }}</span>
+          </div>
+          <span class="titlecs">{{ hospitalDetail.address }}</span>
+        </div>
+      </div>
+      <hr class="full-line">
+    </div>
+</template>
+
+<script>
+    export default {
+        props: ['hospitalDetail']
+    }
+</script>
+
+<style scoped>
+  .cell{
+    background:rgba(255,255,255,1);
+    /*padding: 15px 16px;*/
+    height: 100px;
+  }
+
+  .namecs{
+    font-size:16px;
+    font-weight:bold;
+    color:#222222;
+    line-height:25px;
+  }
+
+  .titlecs{
+    font-size:12px;
+    font-weight:normal;
+    color:rgba(179,179,179,1);
+    line-height:20px;
+  }
+
+  .img{
+    float: right;
+    width: 16px;
+    height: 16px;
+    margin-top: 30px;
+  }
+
+  .img{
+    width: 70px;
+    height: 70px;
+    border-radius: 35px;
+    vertical-align: middle;
+    float: left;
+    margin-top: 15px;
+    margin-left: 16px;
+  }
+</style>

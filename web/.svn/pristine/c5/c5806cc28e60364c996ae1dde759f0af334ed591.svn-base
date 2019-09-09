@@ -1,0 +1,92 @@
+<template>
+    <div>
+      <div class="list_box">
+        <div>
+          <div class="name"> {{ newsItem.title }}</div>
+          <div>
+            <span class="text">{{ getSrcName }}</span>
+            <span class="time">{{ newsItem.pubTime | dataFormat }}</span>
+          </div>
+        </div>
+        <img class="imgnews" :src="imgSrc" v-if="imgSrc">
+      </div>
+      <hr class="line-m" align= center size="1">
+    </div>
+</template>
+
+<script>
+  import * as types from '../../constant/ConstantConfig.js';
+    export default {
+        props: {
+          newsItem: {}
+        },
+
+      filters: {
+        dataFormat(str) {
+          let date = new Date(Date.parse(str.replace(/-/g,"/"))).format('yyyy-MM-dd');
+          return date;
+        }
+      },
+
+        computed: {
+          getSrcName() {
+            if(this.newsItem.newsId) {
+              if(this.newsItem.srcType.value == types.NEWS_SOURCE_HEALTH) {
+                if(this.newsItem.authorObj) {
+                  return this.newsItem.authorObj.authorName;
+                }
+              } else if(this.newsItem.srcType.value == types.NEWS_SOURCE_COMPANY) {
+                if(this.newsItem.orgObj != null) {
+                  return this.newsItem.orgObj.orgNames;
+                }
+              }
+            }
+            return this.newsItem.srcName;
+          },
+          imgSrc() {
+            if(this.newsItem.newsId) {
+              let resList = this.newsItem.resList;
+              if(resList && resList.length > 0) {
+                 for (let i = 0; i < resList.length; i++) {
+                   let srcItem = resList[i];
+                   if(srcItem.recType.value == types.REC_NEWS_LIST_IMAGE) {
+                     return srcItem.imgUrl;
+                   }
+                 }
+              }
+            }
+          }
+        }
+    }
+</script>
+
+<style scoped>
+  .list_box{
+    display: flex;
+    justify-content: space-between;
+    padding:0 16px;
+    background: #fff;
+  }
+  .imgnews{
+    color: white;
+    width: 108px;
+    height: 80px;
+    margin-left: 10px;
+  }
+  .name{
+    font-weight: 400;
+    font-size: 16px;
+    color: #222222;
+    height: 66px;
+    overflow: hidden;
+  }
+  .text{
+    color:#7A8093;
+    font-size: 12px;
+  }
+  .time{
+    color:#7A8093;
+    font-size: 12px;
+    float: right;
+  }
+</style>

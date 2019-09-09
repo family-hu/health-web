@@ -1,0 +1,251 @@
+<template>
+    <div>
+      <div class="cell">
+        <div style="padding-top: 10px;text-align: center;">
+          <span style="font-weight: 600;font-size: 16px;line-height: 30px;margin-top: 20px">预约单</span>
+          <br>
+          <span style="font-weight: 400;font-size: 15px;line-height: 20px">{{ appointItem.hospital }}</span>
+        </div>
+        <hr class="line01" align= center size="1 ">
+        <hr class="line00" align= center size="1 ">
+        <div style="display: inline-block;padding-top: 5px;width: 100%">
+          <span class="lab">就诊医生</span>
+          <span class="lab1" >{{ appointItem.userName }}丨{{ appointItem.titlesName }}</span>
+        </div>
+        <div style="display: inline-block;padding-top: 5px;width: 100%">
+          <span class="lab">就诊科室</span>
+          <span class="lab1" >{{ departName }}</span>
+        </div>
+        <div style="display: inline-block;padding-top: 5px;width: 100%">
+          <span class="lab">预约时间</span>
+          <span class="lab1" >{{appointItem.date}} {{ appointItem.subscribeMa | maText }} {{ appointItem.workTime}}</span>
+        </div>
+        <div style="display: inline-block;padding-top: 5px;padding-bottom: 20px;width: 100%">
+          <span class="lab">预约费用</span>
+          <span class="lab1" style="color: red">{{ appointItem.price | losslessNumberValue }}元</span>
+        </div>
+      </div>
+
+      <div style="margin: 20px 16px;">
+        <span class="lab2" >预约人姓名</span>
+        <input class="inputcs" style="float: right;color: #B8B8B8" v-model="request.subscribeName" placeholder="请输入预约人姓名" >
+        <hr class="full-line" align= center size="1" style="margin-top: 6px;">
+      </div>
+      <div style="margin: 20px 16px;">
+        <span class="lab2" >预约手机号</span>
+        <input class="inputcs" type="tel" style="float: right;color: #B8B8B8" v-model="request.phone" placeholder="请输入预约手机号">
+        <hr class="full-line" align= center size="1" style="margin-top: 6px;">
+      </div>
+      <button type="button" class="btn" @click="pay">支付</button>
+    </div>
+</template>
+
+<script>
+  import * as type from '../../constant/ConstantConfig.js'
+  import { mapGetters } from 'vuex'
+    export default {
+        data() {
+          return {
+            appointItem: {},
+            request: {},
+            orderId: this.$route.query.orderId,
+            busiType: 1000113,
+            payType: 8101104,   //微信公众号支付
+          }
+        },
+
+        filters: {
+          maText(subscribeMa) {
+            if(subscribeMa.value == "0") return "上午";
+            return '下午';
+          },
+          losslessNumberValue(value) {
+            if(value) return value.value;
+            return '';
+          }
+        },
+
+        computed: {
+          ...mapGetters(['loginData']),
+          departName() {
+            let title = "";
+            if (this.appointItem.department && this.appointItem.department.value == type.COUNTRY_ALL_DEPART) {  //乡村全科
+              if (this.appointItem.deptDesp) {
+                title = this.appointItem.deptDesp;
+              } else {
+                if (this.appointItem.departmentName) {
+                  title = this.appointItem.departmentName;
+                }
+              }
+            } else {
+              if (this.appointItem.departmentName) {
+                title = this.appointItem.departmentName;
+              }
+            }
+            return title;
+          }
+        },
+
+        methods: {
+          pay() {
+            let vm = this;
+            if(!this.orderId) {  //orderId,下单
+              if(!this.request.subscribeName) {
+                this.$toast("请输入预约人姓名");
+                return;
+              }
+              if(!this.request.phone) {
+                this.$toast("请输入预约手机号");
+                return;
+              }
+              this.request.hospital = this.appointItem.hospital;
+              this.request.price = this.appointItem.price.value;
+              this.request.subscribeDay = this.appointItem.date;
+              this.request.subscribeWeek = this.appointItem.week.value;
+              this.request.subscribeMa = this.appointItem.subscribeMa.value;
+              this.request.subscribeWorkTime = this.appointItem.workTime;
+              this.request.docid = this.appointItem.docid.value;
+              this.request.userid = this.loginData.userObj.userId.value;
+              this.$indicator.open();
+              this.$store.dispatch("userOrderSubmit", this.request).then((data) => {
+                vm.orderId = data.orderid.value;
+                vm.wxPay();
+              }).catch(e => {
+                this.$toast(e.message);
+                this.$indicator.close();
+              });
+            } else {
+              this.$indicator.open();
+              this.wxPay();
+            }
+          },
+          wxPay() {
+            let vm = this;
+            let money = this.appointItem.price.value;
+            let userId = this.loginData.userObj.userId.value;
+            let drId = this.appointItem.docid.value;
+            let orgId = this.appointItem.orgId.value;
+            let request = {busiId:this.orderId, busiType:this.busiType, desp:"预约", drId:drId, money:money, moneyRmb:money, orgId:orgId, tradeMode:this.payType, userId:userId};
+            this.$store.dispatch("userConsume", request).then((data) => {
+              //支付成功
+              let request = data.data;
+              if(request) {
+                request = eval('(' + request + ")");
+                vm.invokeWx(request);
+              } else {
+                this.$indicator.close();
+                alert("支付成功");
+                vm.$router.go(-1);
+              }
+            }).catch(e => {
+              this.$toast(e.message);
+            }).finally(() => {
+              this.$indicator.close();
+            });
+          },
+
+          onBridgeReady(request) {
+            let vm = this;
+            WeixinJSBridge.invoke('getBrandWCPayRequest', request, function(res){
+              if(res.err_msg == "get_brand_wcpay_request:ok" ){
+                // 使用以上方式判断前端返回,微信团队郑重提示：
+                //res.err_msg将在用户支付成功后返回ok，但并不保证它绝对可靠。
+                alert("支付成功");
+                vm.$router.go(-1);
+              } else {
+                alert("支付失败");
+              }
+            });
+          },
+
+          invokeWx(request) {
+            if (typeof WeixinJSBridge == "undefined"){
+              if(document.addEventListener ){
+                document.addEventListener('WeixinJSBridgeReady', this.onBridgeReady(request), false);
+              }else if (document.attachEvent){
+                document.attachEvent('WeixinJSBridgeReady', this.onBridgeReady(request));
+                document.attachEvent('onWeixinJSBridgeReady', this.onBridgeReady(request));
+              }
+            }else{
+              this.onBridgeReady(request);
+            }
+          }
+        },
+
+        created() {
+            let appointItem = sessionStorage.getItem("appointItem");
+            if(appointItem) {
+              this.appointItem = JSON.parse(appointItem);
+              this.request.subscribeName = this.appointItem.subscribeName;
+              this.request.phone = this.appointItem.phone;
+            }
+        }
+    }
+</script>
+
+<style scoped>
+  .btn{
+    font-size:15px;
+    color: floralwhite;
+    border-radius: 4px;
+    background-color: rgba(0,147,255,1);
+    height: 40px;
+    width: 90%;
+    margin-left: 5%;
+    border-width: 0px; /* 边框宽度 */
+    outline: none; /* 不显示轮廓线 */
+  }
+  .cell{
+    margin: 20px 16px 20px 16px;
+    background-color: white;
+
+    border-radius: 4px;
+  }
+  .line01{
+    margin-top: 6px;
+    margin-bottom: 1px;
+    margin-left: 27px;
+    margin-right: 27px;
+    color: #B8B8B8;
+  }
+  .line00{
+    margin-top: 1px;
+    margin-left: 24px;
+    margin-right: 24px;
+    color: #B8B8B8;
+  }
+  .lab{
+    margin-left: 30px;
+    font-size: 14px;
+    font-weight: 400;
+    color: #B8B8B8;
+  }
+  .lab1{
+    font-size: 14px;
+    font-weight: 400;
+    color: black;
+    margin-left: 24px;
+  }
+  .lab2{
+    font-size: 14px;
+    font-weight: 400;
+    color: black;
+    margin-left: 0px;
+    line-height: 30px;
+    background-color: #f7f7f7;
+  }
+
+  .inputcs{
+    text-align: right;
+    font-size: 14px;
+    font-weight: 400;
+    color: black;
+    margin-left: 0px;
+    line-height: 30px;
+    margin-bottom: 4px;
+    background-color:#F7F7F7;
+    border-width: 0px; /* 边框宽度 */
+    outline: none; /* 不显示轮廓线 */
+  }
+
+</style>
